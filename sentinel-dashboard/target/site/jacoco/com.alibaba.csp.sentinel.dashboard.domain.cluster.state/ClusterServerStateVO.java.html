@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterServerStateVO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.cluster.state</a> &gt; <span class="el_source">ClusterServerStateVO.java</span></div><h1>ClusterServerStateVO.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.cluster.state;
+
+import java.util.List;
+import java.util.Set;
+
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.ConnectionGroupVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerFlowConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerTransportConfig;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+<span class="nc" id="L29">public class ClusterServerStateVO {</span>
+
+    private String appName;
+
+    private ServerTransportConfig transport;
+    private ServerFlowConfig flow;
+    private Set&lt;String&gt; namespaceSet;
+
+    private Integer port;
+
+    private List&lt;ConnectionGroupVO&gt; connection;
+    private List&lt;ClusterRequestLimitVO&gt; requestLimitData;
+
+    private Boolean embedded;
+
+    public String getAppName() {
+<span class="nc" id="L45">        return appName;</span>
+    }
+
+    public ClusterServerStateVO setAppName(String appName) {
+<span class="nc" id="L49">        this.appName = appName;</span>
+<span class="nc" id="L50">        return this;</span>
+    }
+
+    public ServerTransportConfig getTransport() {
+<span class="nc" id="L54">        return transport;</span>
+    }
+
+    public ClusterServerStateVO setTransport(ServerTransportConfig transport) {
+<span class="nc" id="L58">        this.transport = transport;</span>
+<span class="nc" id="L59">        return this;</span>
+    }
+
+    public ServerFlowConfig getFlow() {
+<span class="nc" id="L63">        return flow;</span>
+    }
+
+    public ClusterServerStateVO setFlow(ServerFlowConfig flow) {
+<span class="nc" id="L67">        this.flow = flow;</span>
+<span class="nc" id="L68">        return this;</span>
+    }
+
+    public Set&lt;String&gt; getNamespaceSet() {
+<span class="nc" id="L72">        return namespaceSet;</span>
+    }
+
+    public ClusterServerStateVO setNamespaceSet(Set&lt;String&gt; namespaceSet) {
+<span class="nc" id="L76">        this.namespaceSet = namespaceSet;</span>
+<span class="nc" id="L77">        return this;</span>
+    }
+
+    public Integer getPort() {
+<span class="nc" id="L81">        return port;</span>
+    }
+
+    public ClusterServerStateVO setPort(Integer port) {
+<span class="nc" id="L85">        this.port = port;</span>
+<span class="nc" id="L86">        return this;</span>
+    }
+
+    public List&lt;ConnectionGroupVO&gt; getConnection() {
+<span class="nc" id="L90">        return connection;</span>
+    }
+
+    public ClusterServerStateVO setConnection(List&lt;ConnectionGroupVO&gt; connection) {
+<span class="nc" id="L94">        this.connection = connection;</span>
+<span class="nc" id="L95">        return this;</span>
+    }
+
+    public List&lt;ClusterRequestLimitVO&gt; getRequestLimitData() {
+<span class="nc" id="L99">        return requestLimitData;</span>
+    }
+
+    public ClusterServerStateVO setRequestLimitData(List&lt;ClusterRequestLimitVO&gt; requestLimitData) {
+<span class="nc" id="L103">        this.requestLimitData = requestLimitData;</span>
+<span class="nc" id="L104">        return this;</span>
+    }
+
+    public Boolean getEmbedded() {
+<span class="nc" id="L108">        return embedded;</span>
+    }
+
+    public ClusterServerStateVO setEmbedded(Boolean embedded) {
+<span class="nc" id="L112">        this.embedded = embedded;</span>
+<span class="nc" id="L113">        return this;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L118">        return &quot;ClusterServerStateVO{&quot; +</span>
+            &quot;appName='&quot; + appName + '\'' +
+            &quot;, transport=&quot; + transport +
+            &quot;, flow=&quot; + flow +
+            &quot;, namespaceSet=&quot; + namespaceSet +
+            &quot;, port=&quot; + port +
+            &quot;, connection=&quot; + connection +
+            &quot;, requestLimitData=&quot; + requestLimitData +
+            &quot;, embedded=&quot; + embedded +
+            '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

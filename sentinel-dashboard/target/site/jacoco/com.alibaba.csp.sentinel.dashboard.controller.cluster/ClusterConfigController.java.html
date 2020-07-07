@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterConfigController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.controller.cluster</a> &gt; <span class="el_source">ClusterConfigController.java</span></div><h1>ClusterConfigController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller.cluster;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+
+import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
+import com.alibaba.csp.sentinel.dashboard.client.CommandNotFoundException;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
+import com.alibaba.csp.sentinel.util.StringUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.SentinelVersion;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.request.ClusterClientModifyRequest;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.request.ClusterModifyRequest;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.request.ClusterServerModifyRequest;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.AppClusterClientStateWrapVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.AppClusterServerStateWrapVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStatePairVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStateVO;
+import com.alibaba.csp.sentinel.dashboard.service.ClusterConfigService;
+import com.alibaba.csp.sentinel.dashboard.util.ClusterEntityUtils;
+import com.alibaba.csp.sentinel.dashboard.util.VersionUtils;
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@RestController
+@RequestMapping(value = &quot;/cluster&quot;)
+<span class="nc" id="L58">public class ClusterConfigController {</span>
+
+<span class="nc" id="L60">    private final Logger logger = LoggerFactory.getLogger(ClusterConfigController.class);</span>
+
+<span class="nc" id="L62">    private final SentinelVersion version140 = new SentinelVersion().setMajorVersion(1).setMinorVersion(4);</span>
+
+    @Autowired
+    private AppManagement appManagement;
+
+    @Autowired
+    private ClusterConfigService clusterConfigService;
+
+    @PostMapping(&quot;/config/modify_single&quot;)
+    public Result&lt;Boolean&gt; apiModifyClusterConfig(@RequestBody String payload) {
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (StringUtil.isBlank(payload)) {</span>
+<span class="nc" id="L73">            return Result.ofFail(-1, &quot;empty request body&quot;);</span>
+        }
+        try {
+<span class="nc" id="L76">            JSONObject body = JSON.parseObject(payload);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            if (body.containsKey(KEY_MODE)) {</span>
+<span class="nc" id="L78">                int mode = body.getInteger(KEY_MODE);</span>
+<span class="nc bnc" id="L79" title="All 3 branches missed.">                switch (mode) {</span>
+                    case ClusterStateManager.CLUSTER_CLIENT:
+<span class="nc" id="L81">                        ClusterClientModifyRequest data = JSON.parseObject(payload, ClusterClientModifyRequest.class);</span>
+<span class="nc" id="L82">                        Result&lt;Boolean&gt; res = checkValidRequest(data);</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">                        if (res != null) {</span>
+<span class="nc" id="L84">                            return res;</span>
+                        }
+<span class="nc" id="L86">                        clusterConfigService.modifyClusterClientConfig(data).get();</span>
+<span class="nc" id="L87">                        return Result.ofSuccess(true);</span>
+                    case ClusterStateManager.CLUSTER_SERVER:
+<span class="nc" id="L89">                        ClusterServerModifyRequest d = JSON.parseObject(payload, ClusterServerModifyRequest.class);</span>
+<span class="nc" id="L90">                        Result&lt;Boolean&gt; r = checkValidRequest(d);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">                        if (r != null) {</span>
+<span class="nc" id="L92">                            return r;</span>
+                        }
+                        // TODO: bad design here, should refactor!
+<span class="nc" id="L95">                        clusterConfigService.modifyClusterServerConfig(d).get();</span>
+<span class="nc" id="L96">                        return Result.ofSuccess(true);</span>
+                    default:
+<span class="nc" id="L98">                        return Result.ofFail(-1, &quot;invalid mode&quot;);</span>
+                }
+            }
+<span class="nc" id="L101">            return Result.ofFail(-1, &quot;invalid parameter&quot;);</span>
+<span class="nc" id="L102">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L103">            logger.error(&quot;Error when modifying cluster config&quot;, ex.getCause());</span>
+<span class="nc" id="L104">            return errorResponse(ex);</span>
+<span class="nc" id="L105">        } catch (Throwable ex) {</span>
+<span class="nc" id="L106">            logger.error(&quot;Error when modifying cluster config&quot;, ex);</span>
+<span class="nc" id="L107">            return Result.ofFail(-1, ex.getMessage());</span>
+        }
+    }
+
+    private &lt;T&gt; Result&lt;T&gt; errorResponse(ExecutionException ex) {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (isNotSupported(ex.getCause())) {</span>
+<span class="nc" id="L113">            return unsupportedVersion();</span>
+        } else {
+<span class="nc" id="L115">            return Result.ofThrowable(-1, ex.getCause());</span>
+        }
+    }
+
+    @GetMapping(&quot;/state_single&quot;)
+    public Result&lt;ClusterUniversalStateVO&gt; apiGetClusterState(@RequestParam String app,
+                                                              @RequestParam String ip,
+                                                              @RequestParam Integer port) {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L124">            return Result.ofFail(-1, &quot;app cannot be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (StringUtil.isEmpty(ip)) {</span>
+<span class="nc" id="L127">            return Result.ofFail(-1, &quot;ip cannot be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L129" title="All 4 branches missed.">        if (port == null || port &lt;= 0) {</span>
+<span class="nc" id="L130">            return Result.ofFail(-1, &quot;Invalid parameter: port&quot;);</span>
+        }
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!checkIfSupported(app, ip, port)) {</span>
+<span class="nc" id="L133">            return unsupportedVersion();</span>
+        }
+        try {
+<span class="nc" id="L136">            return clusterConfigService.getClusterUniversalState(app, ip, port)</span>
+<span class="nc" id="L137">                .thenApply(Result::ofSuccess)</span>
+<span class="nc" id="L138">                .get();</span>
+<span class="nc" id="L139">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L140">            logger.error(&quot;Error when fetching cluster state&quot;, ex.getCause());</span>
+<span class="nc" id="L141">            return errorResponse(ex);</span>
+<span class="nc" id="L142">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L143">            logger.error(&quot;Error when fetching cluster state&quot;, throwable);</span>
+<span class="nc" id="L144">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    @GetMapping(&quot;/server_state/{app}&quot;)
+    public Result&lt;List&lt;AppClusterServerStateWrapVO&gt;&gt; apiGetClusterServerStateOfApp(@PathVariable String app) {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L151">            return Result.ofFail(-1, &quot;app cannot be null or empty&quot;);</span>
+        }
+        try {
+<span class="nc" id="L154">            return clusterConfigService.getClusterUniversalState(app)</span>
+<span class="nc" id="L155">                .thenApply(ClusterEntityUtils::wrapToAppClusterServerState)</span>
+<span class="nc" id="L156">                .thenApply(Result::ofSuccess)</span>
+<span class="nc" id="L157">                .get();</span>
+<span class="nc" id="L158">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L159">            logger.error(&quot;Error when fetching cluster server state of app: &quot; + app, ex.getCause());</span>
+<span class="nc" id="L160">            return errorResponse(ex);</span>
+<span class="nc" id="L161">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L162">            logger.error(&quot;Error when fetching cluster server state of app: &quot; + app, throwable);</span>
+<span class="nc" id="L163">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    @GetMapping(&quot;/client_state/{app}&quot;)
+    public Result&lt;List&lt;AppClusterClientStateWrapVO&gt;&gt; apiGetClusterClientStateOfApp(@PathVariable String app) {
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L170">            return Result.ofFail(-1, &quot;app cannot be null or empty&quot;);</span>
+        }
+        try {
+<span class="nc" id="L173">            return clusterConfigService.getClusterUniversalState(app)</span>
+<span class="nc" id="L174">                .thenApply(ClusterEntityUtils::wrapToAppClusterClientState)</span>
+<span class="nc" id="L175">                .thenApply(Result::ofSuccess)</span>
+<span class="nc" id="L176">                .get();</span>
+<span class="nc" id="L177">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L178">            logger.error(&quot;Error when fetching cluster token client state of app: &quot; + app, ex.getCause());</span>
+<span class="nc" id="L179">            return errorResponse(ex);</span>
+<span class="nc" id="L180">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L181">            logger.error(&quot;Error when fetching cluster token client state of app: &quot; + app, throwable);</span>
+<span class="nc" id="L182">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    @GetMapping(&quot;/state/{app}&quot;)
+    public Result&lt;List&lt;ClusterUniversalStatePairVO&gt;&gt; apiGetClusterStateOfApp(@PathVariable String app) {
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L189">            return Result.ofFail(-1, &quot;app cannot be null or empty&quot;);</span>
+        }
+        try {
+<span class="nc" id="L192">            return clusterConfigService.getClusterUniversalState(app)</span>
+<span class="nc" id="L193">                .thenApply(Result::ofSuccess)</span>
+<span class="nc" id="L194">                .get();</span>
+<span class="nc" id="L195">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L196">            logger.error(&quot;Error when fetching cluster state of app: &quot; + app, ex.getCause());</span>
+<span class="nc" id="L197">            return errorResponse(ex);</span>
+<span class="nc" id="L198">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L199">            logger.error(&quot;Error when fetching cluster state of app: &quot; + app, throwable);</span>
+<span class="nc" id="L200">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    private boolean isNotSupported(Throwable ex) {
+<span class="nc" id="L205">        return ex instanceof CommandNotFoundException;</span>
+    }
+
+    private boolean checkIfSupported(String app, String ip, int port) {
+        try {
+<span class="nc" id="L210">            return Optional.ofNullable(appManagement.getDetailApp(app))</span>
+<span class="nc" id="L211">                .flatMap(e -&gt; e.getMachine(ip, port))</span>
+<span class="nc" id="L212">                .flatMap(m -&gt; VersionUtils.parseVersion(m.getVersion())</span>
+<span class="nc" id="L213">                    .map(v -&gt; v.greaterOrEqual(version140)))</span>
+<span class="nc" id="L214">                .orElse(true);</span>
+            // If error occurred or cannot retrieve machine info, return true.
+<span class="nc" id="L216">        } catch (Exception ex) {</span>
+<span class="nc" id="L217">            return true;</span>
+        }
+    }
+
+    private Result&lt;Boolean&gt; checkValidRequest(ClusterModifyRequest request) {
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (StringUtil.isEmpty(request.getApp())) {</span>
+<span class="nc" id="L223">            return Result.ofFail(-1, &quot;app cannot be empty&quot;);</span>
+        }
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        if (StringUtil.isEmpty(request.getIp())) {</span>
+<span class="nc" id="L226">            return Result.ofFail(-1, &quot;ip cannot be empty&quot;);</span>
+        }
+<span class="nc bnc" id="L228" title="All 4 branches missed.">        if (request.getPort() == null || request.getPort() &lt; 0) {</span>
+<span class="nc" id="L229">            return Result.ofFail(-1, &quot;invalid port&quot;);</span>
+        }
+<span class="nc bnc" id="L231" title="All 4 branches missed.">        if (request.getMode() == null || request.getMode() &lt; 0) {</span>
+<span class="nc" id="L232">            return Result.ofFail(-1, &quot;invalid mode&quot;);</span>
+        }
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (!checkIfSupported(request.getApp(), request.getIp(), request.getPort())) {</span>
+<span class="nc" id="L235">            return unsupportedVersion();</span>
+        }
+<span class="nc" id="L237">        return null;</span>
+    }
+
+    private &lt;R&gt; Result&lt;R&gt; unsupportedVersion() {
+<span class="nc" id="L241">        return Result.ofFail(4041, &quot;Sentinel client not supported for cluster flow control (unsupported version or dependency absent)&quot;);</span>
+    }
+
+    private static final String KEY_MODE = &quot;mode&quot;;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

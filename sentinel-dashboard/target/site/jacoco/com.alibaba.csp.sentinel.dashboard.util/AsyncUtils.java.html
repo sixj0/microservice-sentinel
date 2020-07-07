@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsyncUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.util</a> &gt; <span class="el_source">AsyncUtils.java</span></div><h1>AsyncUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.util;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.1
+ */
+public final class AsyncUtils {
+
+<span class="nc" id="L33">    private static final Logger LOG = LoggerFactory.getLogger(AsyncUtils.class);</span>
+
+    public static &lt;R&gt; CompletableFuture&lt;R&gt; newFailedFuture(Throwable ex) {
+<span class="nc" id="L36">        CompletableFuture&lt;R&gt; future = new CompletableFuture&lt;&gt;();</span>
+<span class="nc" id="L37">        future.completeExceptionally(ex);</span>
+<span class="nc" id="L38">        return future;</span>
+    }
+
+    public static &lt;R&gt; CompletableFuture&lt;List&lt;R&gt;&gt; sequenceFuture(List&lt;CompletableFuture&lt;R&gt;&gt; futures) {
+<span class="nc" id="L42">        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))</span>
+<span class="nc" id="L43">            .thenApply(v -&gt; futures.stream()</span>
+<span class="nc" id="L44">                .map(AsyncUtils::getValue)</span>
+<span class="nc" id="L45">                .filter(Objects::nonNull)</span>
+<span class="nc" id="L46">                .collect(Collectors.toList())</span>
+            );
+    }
+
+    public static &lt;R&gt; CompletableFuture&lt;List&lt;R&gt;&gt; sequenceSuccessFuture(List&lt;CompletableFuture&lt;R&gt;&gt; futures) {
+<span class="nc" id="L51">        return CompletableFuture.supplyAsync(() -&gt; futures.parallelStream()</span>
+<span class="nc" id="L52">            .map(AsyncUtils::getValue)</span>
+<span class="nc" id="L53">            .filter(Objects::nonNull)</span>
+<span class="nc" id="L54">            .collect(Collectors.toList())</span>
+        );
+    }
+
+    public static &lt;T&gt; T getValue(CompletableFuture&lt;T&gt; future) {
+        try {
+<span class="nc" id="L60">            return future.get(10, TimeUnit.SECONDS);</span>
+<span class="nc" id="L61">        } catch (Exception ex) {</span>
+<span class="nc" id="L62">            LOG.error(&quot;getValue for async result failed&quot;, ex);</span>
+        }
+<span class="nc" id="L64">        return null;</span>
+    }
+
+    public static boolean isSuccessFuture(CompletableFuture future) {
+<span class="nc bnc" id="L68" title="All 6 branches missed.">        return future.isDone() &amp;&amp; !future.isCompletedExceptionally() &amp;&amp; !future.isCancelled();</span>
+    }
+
+    private AsyncUtils() {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

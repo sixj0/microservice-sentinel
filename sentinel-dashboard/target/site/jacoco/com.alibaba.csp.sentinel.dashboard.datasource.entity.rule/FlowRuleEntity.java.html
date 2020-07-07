@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FlowRuleEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.datasource.entity.rule</a> &gt; <span class="el_source">FlowRuleEntity.java</span></div><h1>FlowRuleEntity.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
+
+import java.util.Date;
+
+import com.alibaba.csp.sentinel.slots.block.flow.ClusterFlowConfig;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
+
+/**
+ * @author leyou
+ */
+<span class="nc" id="L26">public class FlowRuleEntity implements RuleEntity {</span>
+
+    private Long id;
+    private String app;
+    private String ip;
+    private Integer port;
+    private String limitApp;
+    private String resource;
+    /**
+     * 0为线程数;1为qps
+     */
+    private Integer grade;
+    private Double count;
+    /**
+     * 0为直接限流;1为关联限流;2为链路限流
+     ***/
+    private Integer strategy;
+    private String refResource;
+    /**
+     * 0. default, 1. warm up, 2. rate limiter
+     */
+    private Integer controlBehavior;
+    private Integer warmUpPeriodSec;
+    /**
+     * max queueing time in rate limiter behavior
+     */
+    private Integer maxQueueingTimeMs;
+
+    private boolean clusterMode;
+    /**
+     * Flow rule config for cluster mode.
+     */
+    private ClusterFlowConfig clusterConfig;
+
+    private Date gmtCreate;
+    private Date gmtModified;
+
+    public static FlowRuleEntity fromFlowRule(String app, String ip, Integer port, FlowRule rule) {
+<span class="nc" id="L64">        FlowRuleEntity entity = new FlowRuleEntity();</span>
+<span class="nc" id="L65">        entity.setApp(app);</span>
+<span class="nc" id="L66">        entity.setIp(ip);</span>
+<span class="nc" id="L67">        entity.setPort(port);</span>
+<span class="nc" id="L68">        entity.setLimitApp(rule.getLimitApp());</span>
+<span class="nc" id="L69">        entity.setResource(rule.getResource());</span>
+<span class="nc" id="L70">        entity.setGrade(rule.getGrade());</span>
+<span class="nc" id="L71">        entity.setCount(rule.getCount());</span>
+<span class="nc" id="L72">        entity.setStrategy(rule.getStrategy());</span>
+<span class="nc" id="L73">        entity.setRefResource(rule.getRefResource());</span>
+<span class="nc" id="L74">        entity.setControlBehavior(rule.getControlBehavior());</span>
+<span class="nc" id="L75">        entity.setWarmUpPeriodSec(rule.getWarmUpPeriodSec());</span>
+<span class="nc" id="L76">        entity.setMaxQueueingTimeMs(rule.getMaxQueueingTimeMs());</span>
+<span class="nc" id="L77">        entity.setClusterMode(rule.isClusterMode());</span>
+<span class="nc" id="L78">        entity.setClusterConfig(rule.getClusterConfig());</span>
+<span class="nc" id="L79">        return entity;</span>
+    }
+
+    @Override
+    public String getIp() {
+<span class="nc" id="L84">        return ip;</span>
+    }
+
+    public void setIp(String ip) {
+<span class="nc" id="L88">        this.ip = ip;</span>
+<span class="nc" id="L89">    }</span>
+
+    @Override
+    public Integer getPort() {
+<span class="nc" id="L93">        return port;</span>
+    }
+
+    public void setPort(Integer port) {
+<span class="nc" id="L97">        this.port = port;</span>
+<span class="nc" id="L98">    }</span>
+
+    @Override
+    public String getApp() {
+<span class="nc" id="L102">        return app;</span>
+    }
+
+    public void setApp(String app) {
+<span class="nc" id="L106">        this.app = app;</span>
+<span class="nc" id="L107">    }</span>
+
+    @Override
+    public Long getId() {
+<span class="nc" id="L111">        return id;</span>
+    }
+
+    @Override
+    public void setId(Long id) {
+<span class="nc" id="L116">        this.id = id;</span>
+<span class="nc" id="L117">    }</span>
+
+    public String getLimitApp() {
+<span class="nc" id="L120">        return limitApp;</span>
+    }
+
+    public void setLimitApp(String limitApp) {
+<span class="nc" id="L124">        this.limitApp = limitApp;</span>
+<span class="nc" id="L125">    }</span>
+
+    public String getResource() {
+<span class="nc" id="L128">        return resource;</span>
+    }
+
+    public void setResource(String resource) {
+<span class="nc" id="L132">        this.resource = resource;</span>
+<span class="nc" id="L133">    }</span>
+
+    public Integer getGrade() {
+<span class="nc" id="L136">        return grade;</span>
+    }
+
+    public void setGrade(Integer grade) {
+<span class="nc" id="L140">        this.grade = grade;</span>
+<span class="nc" id="L141">    }</span>
+
+    public Double getCount() {
+<span class="nc" id="L144">        return count;</span>
+    }
+
+    public void setCount(Double count) {
+<span class="nc" id="L148">        this.count = count;</span>
+<span class="nc" id="L149">    }</span>
+
+    public Integer getStrategy() {
+<span class="nc" id="L152">        return strategy;</span>
+    }
+
+    public void setStrategy(Integer strategy) {
+<span class="nc" id="L156">        this.strategy = strategy;</span>
+<span class="nc" id="L157">    }</span>
+
+    public String getRefResource() {
+<span class="nc" id="L160">        return refResource;</span>
+    }
+
+    public void setRefResource(String refResource) {
+<span class="nc" id="L164">        this.refResource = refResource;</span>
+<span class="nc" id="L165">    }</span>
+
+    public Integer getControlBehavior() {
+<span class="nc" id="L168">        return controlBehavior;</span>
+    }
+
+    public void setControlBehavior(Integer controlBehavior) {
+<span class="nc" id="L172">        this.controlBehavior = controlBehavior;</span>
+<span class="nc" id="L173">    }</span>
+
+    public Integer getWarmUpPeriodSec() {
+<span class="nc" id="L176">        return warmUpPeriodSec;</span>
+    }
+
+    public void setWarmUpPeriodSec(Integer warmUpPeriodSec) {
+<span class="nc" id="L180">        this.warmUpPeriodSec = warmUpPeriodSec;</span>
+<span class="nc" id="L181">    }</span>
+
+    public Integer getMaxQueueingTimeMs() {
+<span class="nc" id="L184">        return maxQueueingTimeMs;</span>
+    }
+
+    public void setMaxQueueingTimeMs(Integer maxQueueingTimeMs) {
+<span class="nc" id="L188">        this.maxQueueingTimeMs = maxQueueingTimeMs;</span>
+<span class="nc" id="L189">    }</span>
+
+    public boolean isClusterMode() {
+<span class="nc" id="L192">        return clusterMode;</span>
+    }
+
+    public FlowRuleEntity setClusterMode(boolean clusterMode) {
+<span class="nc" id="L196">        this.clusterMode = clusterMode;</span>
+<span class="nc" id="L197">        return this;</span>
+    }
+
+    public ClusterFlowConfig getClusterConfig() {
+<span class="nc" id="L201">        return clusterConfig;</span>
+    }
+
+    public FlowRuleEntity setClusterConfig(ClusterFlowConfig clusterConfig) {
+<span class="nc" id="L205">        this.clusterConfig = clusterConfig;</span>
+<span class="nc" id="L206">        return this;</span>
+    }
+
+    @Override
+    public Date getGmtCreate() {
+<span class="nc" id="L211">        return gmtCreate;</span>
+    }
+
+    public void setGmtCreate(Date gmtCreate) {
+<span class="nc" id="L215">        this.gmtCreate = gmtCreate;</span>
+<span class="nc" id="L216">    }</span>
+
+    public Date getGmtModified() {
+<span class="nc" id="L219">        return gmtModified;</span>
+    }
+
+    public void setGmtModified(Date gmtModified) {
+<span class="nc" id="L223">        this.gmtModified = gmtModified;</span>
+<span class="nc" id="L224">    }</span>
+
+    @Override
+    public FlowRule toRule() {
+<span class="nc" id="L228">        FlowRule flowRule = new FlowRule();</span>
+<span class="nc" id="L229">        flowRule.setCount(this.count);</span>
+<span class="nc" id="L230">        flowRule.setGrade(this.grade);</span>
+<span class="nc" id="L231">        flowRule.setResource(this.resource);</span>
+<span class="nc" id="L232">        flowRule.setLimitApp(this.limitApp);</span>
+<span class="nc" id="L233">        flowRule.setRefResource(this.refResource);</span>
+<span class="nc" id="L234">        flowRule.setStrategy(this.strategy);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        if (this.controlBehavior != null) {</span>
+<span class="nc" id="L236">            flowRule.setControlBehavior(controlBehavior);</span>
+        }
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (this.warmUpPeriodSec != null) {</span>
+<span class="nc" id="L239">            flowRule.setWarmUpPeriodSec(warmUpPeriodSec);</span>
+        }
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if (this.maxQueueingTimeMs != null) {</span>
+<span class="nc" id="L242">            flowRule.setMaxQueueingTimeMs(maxQueueingTimeMs);</span>
+        }
+<span class="nc" id="L244">        flowRule.setClusterMode(clusterMode);</span>
+<span class="nc" id="L245">        flowRule.setClusterConfig(clusterConfig);</span>
+<span class="nc" id="L246">        return flowRule;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

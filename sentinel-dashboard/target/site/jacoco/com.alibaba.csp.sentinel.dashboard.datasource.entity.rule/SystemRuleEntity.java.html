@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SystemRuleEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.datasource.entity.rule</a> &gt; <span class="el_source">SystemRuleEntity.java</span></div><h1>SystemRuleEntity.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
+
+import java.util.Date;
+
+import com.alibaba.csp.sentinel.slots.system.SystemRule;
+
+/**
+ * @author leyou
+ */
+<span class="nc" id="L25">public class SystemRuleEntity implements RuleEntity {</span>
+
+    private Long id;
+
+    private String app;
+    private String ip;
+    private Integer port;
+    private Double avgLoad;
+    private Long avgRt;
+    private Long maxThread;
+    private Double qps;
+
+    private Date gmtCreate;
+    private Date gmtModified;
+
+    public static SystemRuleEntity fromSystemRule(String app, String ip, Integer port, SystemRule rule) {
+<span class="nc" id="L41">        SystemRuleEntity entity = new SystemRuleEntity();</span>
+<span class="nc" id="L42">        entity.setApp(app);</span>
+<span class="nc" id="L43">        entity.setIp(ip);</span>
+<span class="nc" id="L44">        entity.setPort(port);</span>
+<span class="nc" id="L45">        entity.setAvgLoad(rule.getHighestSystemLoad());</span>
+<span class="nc" id="L46">        entity.setAvgRt(rule.getAvgRt());</span>
+<span class="nc" id="L47">        entity.setMaxThread(rule.getMaxThread());</span>
+<span class="nc" id="L48">        entity.setQps(rule.getQps());</span>
+<span class="nc" id="L49">        return entity;</span>
+    }
+
+    @Override
+    public String getIp() {
+<span class="nc" id="L54">        return ip;</span>
+    }
+
+    public void setIp(String ip) {
+<span class="nc" id="L58">        this.ip = ip;</span>
+<span class="nc" id="L59">    }</span>
+
+    @Override
+    public Integer getPort() {
+<span class="nc" id="L63">        return port;</span>
+    }
+
+    public void setPort(Integer port) {
+<span class="nc" id="L67">        this.port = port;</span>
+<span class="nc" id="L68">    }</span>
+
+    @Override
+    public Long getId() {
+<span class="nc" id="L72">        return id;</span>
+    }
+
+    @Override
+    public void setId(Long id) {
+<span class="nc" id="L77">        this.id = id;</span>
+<span class="nc" id="L78">    }</span>
+
+    @Override
+    public String getApp() {
+<span class="nc" id="L82">        return app;</span>
+    }
+
+    public void setApp(String app) {
+<span class="nc" id="L86">        this.app = app;</span>
+<span class="nc" id="L87">    }</span>
+
+    public Double getAvgLoad() {
+<span class="nc" id="L90">        return avgLoad;</span>
+    }
+
+    public void setAvgLoad(Double avgLoad) {
+<span class="nc" id="L94">        this.avgLoad = avgLoad;</span>
+<span class="nc" id="L95">    }</span>
+
+    public Long getAvgRt() {
+<span class="nc" id="L98">        return avgRt;</span>
+    }
+
+    public void setAvgRt(Long avgRt) {
+<span class="nc" id="L102">        this.avgRt = avgRt;</span>
+<span class="nc" id="L103">    }</span>
+
+    public Long getMaxThread() {
+<span class="nc" id="L106">        return maxThread;</span>
+    }
+
+    public void setMaxThread(Long maxThread) {
+<span class="nc" id="L110">        this.maxThread = maxThread;</span>
+<span class="nc" id="L111">    }</span>
+
+    public Double getQps() {
+<span class="nc" id="L114">        return qps;</span>
+    }
+
+    public void setQps(Double qps) {
+<span class="nc" id="L118">        this.qps = qps;</span>
+<span class="nc" id="L119">    }</span>
+
+    @Override
+    public Date getGmtCreate() {
+<span class="nc" id="L123">        return gmtCreate;</span>
+    }
+
+    public void setGmtCreate(Date gmtCreate) {
+<span class="nc" id="L127">        this.gmtCreate = gmtCreate;</span>
+<span class="nc" id="L128">    }</span>
+
+    public Date getGmtModified() {
+<span class="nc" id="L131">        return gmtModified;</span>
+    }
+
+    public void setGmtModified(Date gmtModified) {
+<span class="nc" id="L135">        this.gmtModified = gmtModified;</span>
+<span class="nc" id="L136">    }</span>
+
+    @Override
+    public SystemRule toRule() {
+<span class="nc" id="L140">        SystemRule rule = new SystemRule();</span>
+<span class="nc" id="L141">        rule.setHighestSystemLoad(avgLoad);</span>
+<span class="nc" id="L142">        rule.setAvgRt(avgRt);</span>
+<span class="nc" id="L143">        rule.setMaxThread(maxThread);</span>
+<span class="nc" id="L144">        rule.setQps(qps);</span>
+<span class="nc" id="L145">        return rule;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

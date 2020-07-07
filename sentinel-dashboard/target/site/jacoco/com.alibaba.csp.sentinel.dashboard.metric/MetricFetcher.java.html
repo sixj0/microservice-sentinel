@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetricFetcher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.metric</a> &gt; <span class="el_source">MetricFetcher.java</span></div><h1>MetricFetcher.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.metric;
+
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.nio.charset.Charset;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor.DiscardPolicy;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import com.alibaba.csp.sentinel.Constants;
+import com.alibaba.csp.sentinel.concurrent.NamedThreadFactory;
+import com.alibaba.csp.sentinel.config.SentinelConfig;
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.MetricEntity;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppInfo;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
+import com.alibaba.csp.sentinel.dashboard.discovery.MachineInfo;
+import com.alibaba.csp.sentinel.node.metric.MetricNode;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.repository.metric.MetricsRepository;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ * Fetch metric of machines.
+ *
+ * @author leyou
+ */
+@Component
+public class MetricFetcher {
+
+    public static final String NO_METRICS = &quot;No metrics&quot;;
+    private static final int HTTP_OK = 200;
+    private static final long MAX_LAST_FETCH_INTERVAL_MS = 1000 * 15;
+    private static final long FETCH_INTERVAL_SECOND = 6;
+<span class="nc" id="L76">    private static final Charset DEFAULT_CHARSET = Charset.forName(SentinelConfig.charset());</span>
+    private final static String METRIC_URL_PATH = &quot;metric&quot;;
+<span class="nc" id="L78">    private static Logger logger = LoggerFactory.getLogger(MetricFetcher.class);</span>
+<span class="nc" id="L79">    private final long intervalSecond = 1;</span>
+
+<span class="nc" id="L81">    private Map&lt;String, AtomicLong&gt; appLastFetchTime = new ConcurrentHashMap&lt;&gt;();</span>
+
+    @Autowired
+    private MetricsRepository&lt;MetricEntity&gt; metricStore;
+    @Autowired
+    private AppManagement appManagement;
+
+    private CloseableHttpAsyncClient httpclient;
+
+<span class="nc" id="L90">    @SuppressWarnings(&quot;PMD.ThreadPoolCreationRule&quot;)</span>
+<span class="nc" id="L91">    private ScheduledExecutorService fetchScheduleService = Executors.newScheduledThreadPool(1,</span>
+        new NamedThreadFactory(&quot;sentinel-dashboard-metrics-fetch-task&quot;));
+    private ExecutorService fetchService;
+    private ExecutorService fetchWorker;
+
+<span class="nc" id="L96">    public MetricFetcher() {</span>
+<span class="nc" id="L97">        int cores = Runtime.getRuntime().availableProcessors() * 2;</span>
+<span class="nc" id="L98">        long keepAliveTime = 0;</span>
+<span class="nc" id="L99">        int queueSize = 2048;</span>
+<span class="nc" id="L100">        RejectedExecutionHandler handler = new DiscardPolicy();</span>
+<span class="nc" id="L101">        fetchService = new ThreadPoolExecutor(cores, cores,</span>
+            keepAliveTime, TimeUnit.MILLISECONDS, new ArrayBlockingQueue&lt;&gt;(queueSize),
+            new NamedThreadFactory(&quot;sentinel-dashboard-metrics-fetchService&quot;), handler);
+<span class="nc" id="L104">        fetchWorker = new ThreadPoolExecutor(cores, cores,</span>
+            keepAliveTime, TimeUnit.MILLISECONDS, new ArrayBlockingQueue&lt;&gt;(queueSize),
+            new NamedThreadFactory(&quot;sentinel-dashboard-metrics-fetchWorker&quot;), handler);
+<span class="nc" id="L107">        IOReactorConfig ioConfig = IOReactorConfig.custom()</span>
+<span class="nc" id="L108">            .setConnectTimeout(3000)</span>
+<span class="nc" id="L109">            .setSoTimeout(3000)</span>
+<span class="nc" id="L110">            .setIoThreadCount(Runtime.getRuntime().availableProcessors() * 2)</span>
+<span class="nc" id="L111">            .build();</span>
+
+<span class="nc" id="L113">        httpclient = HttpAsyncClients.custom()</span>
+<span class="nc" id="L114">            .setRedirectStrategy(new DefaultRedirectStrategy() {</span>
+                @Override
+                protected boolean isRedirectable(final String method) {
+<span class="nc" id="L117">                    return false;</span>
+                }
+<span class="nc" id="L119">            }).setMaxConnTotal(4000)</span>
+<span class="nc" id="L120">            .setMaxConnPerRoute(1000)</span>
+<span class="nc" id="L121">            .setDefaultIOReactorConfig(ioConfig)</span>
+<span class="nc" id="L122">            .build();</span>
+<span class="nc" id="L123">        httpclient.start();</span>
+<span class="nc" id="L124">        start();</span>
+<span class="nc" id="L125">    }</span>
+
+    private void start() {
+<span class="nc" id="L128">        fetchScheduleService.scheduleAtFixedRate(() -&gt; {</span>
+            try {
+<span class="nc" id="L130">                fetchAllApp();</span>
+<span class="nc" id="L131">            } catch (Exception e) {</span>
+<span class="nc" id="L132">                logger.info(&quot;fetchAllApp error:&quot;, e);</span>
+<span class="nc" id="L133">            }</span>
+<span class="nc" id="L134">        }, 10, intervalSecond, TimeUnit.SECONDS);</span>
+<span class="nc" id="L135">    }</span>
+
+    private void writeMetric(Map&lt;String, MetricEntity&gt; map) {
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (map.isEmpty()) {</span>
+<span class="nc" id="L139">            return;</span>
+        }
+<span class="nc" id="L141">        Date date = new Date();</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        for (MetricEntity entity : map.values()) {</span>
+<span class="nc" id="L143">            entity.setGmtCreate(date);</span>
+<span class="nc" id="L144">            entity.setGmtModified(date);</span>
+<span class="nc" id="L145">        }</span>
+<span class="nc" id="L146">        metricStore.saveAll(map.values());</span>
+<span class="nc" id="L147">    }</span>
+
+    /**
+     * Traverse each APP, and then pull the metric of all machines for that APP.
+     */
+    private void fetchAllApp() {
+<span class="nc" id="L153">        List&lt;String&gt; apps = appManagement.getAppNames();</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (apps == null) {</span>
+<span class="nc" id="L155">            return;</span>
+        }
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        for (final String app : apps) {</span>
+<span class="nc" id="L158">            fetchService.submit(() -&gt; {</span>
+                try {
+<span class="nc" id="L160">                    doFetchAppMetric(app);</span>
+<span class="nc" id="L161">                } catch (Exception e) {</span>
+<span class="nc" id="L162">                    logger.error(&quot;fetchAppMetric error&quot;, e);</span>
+<span class="nc" id="L163">                }</span>
+<span class="nc" id="L164">            });</span>
+<span class="nc" id="L165">        }</span>
+<span class="nc" id="L166">    }</span>
+
+    /**
+     * fetch metric between [startTime, endTime], both side inclusive
+     */
+    private void fetchOnce(String app, long startTime, long endTime, int maxWaitSeconds) {
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (maxWaitSeconds &lt;= 0) {</span>
+<span class="nc" id="L173">            throw new IllegalArgumentException(&quot;maxWaitSeconds must &gt; 0, but &quot; + maxWaitSeconds);</span>
+        }
+<span class="nc" id="L175">        AppInfo appInfo = appManagement.getDetailApp(app);</span>
+        // auto remove for app
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (appInfo.isDead()) {</span>
+<span class="nc" id="L178">            logger.info(&quot;Dead app removed: {}&quot;, app);</span>
+<span class="nc" id="L179">            appManagement.removeApp(app);</span>
+<span class="nc" id="L180">            return;</span>
+        }
+<span class="nc" id="L182">        Set&lt;MachineInfo&gt; machines = appInfo.getMachines();</span>
+<span class="nc" id="L183">        logger.debug(&quot;enter fetchOnce(&quot; + app + &quot;), machines.size()=&quot; + machines.size()</span>
+            + &quot;, time intervalMs [&quot; + startTime + &quot;, &quot; + endTime + &quot;]&quot;);
+<span class="nc bnc" id="L185" title="All 2 branches missed.">        if (machines.isEmpty()) {</span>
+<span class="nc" id="L186">            return;</span>
+        }
+<span class="nc" id="L188">        final String msg = &quot;fetch&quot;;</span>
+<span class="nc" id="L189">        AtomicLong unhealthy = new AtomicLong();</span>
+<span class="nc" id="L190">        final AtomicLong success = new AtomicLong();</span>
+<span class="nc" id="L191">        final AtomicLong fail = new AtomicLong();</span>
+
+<span class="nc" id="L193">        long start = System.currentTimeMillis();</span>
+        /** app_resource_timeSecond -&gt; metric */
+<span class="nc" id="L195">        final Map&lt;String, MetricEntity&gt; metricMap = new ConcurrentHashMap&lt;&gt;(16);</span>
+<span class="nc" id="L196">        final CountDownLatch latch = new CountDownLatch(machines.size());</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        for (final MachineInfo machine : machines) {</span>
+            // auto remove
+<span class="nc bnc" id="L199" title="All 2 branches missed.">            if (machine.isDead()) {</span>
+<span class="nc" id="L200">                latch.countDown();</span>
+<span class="nc" id="L201">                appManagement.getDetailApp(app).removeMachine(machine.getIp(), machine.getPort());</span>
+<span class="nc" id="L202">                logger.info(&quot;Dead machine removed: {}:{} of {}&quot;, machine.getIp(), machine.getPort(), app);</span>
+<span class="nc" id="L203">                continue;</span>
+            }
+<span class="nc bnc" id="L205" title="All 2 branches missed.">            if (!machine.isHealthy()) {</span>
+<span class="nc" id="L206">                latch.countDown();</span>
+<span class="nc" id="L207">                unhealthy.incrementAndGet();</span>
+<span class="nc" id="L208">                continue;</span>
+            }
+<span class="nc" id="L210">            final String url = &quot;http://&quot; + machine.getIp() + &quot;:&quot; + machine.getPort() + &quot;/&quot; + METRIC_URL_PATH</span>
+                + &quot;?startTime=&quot; + startTime + &quot;&amp;endTime=&quot; + endTime + &quot;&amp;refetch=&quot; + false;
+<span class="nc" id="L212">            final HttpGet httpGet = new HttpGet(url);</span>
+<span class="nc" id="L213">            httpGet.setHeader(HTTP.CONN_DIRECTIVE, HTTP.CONN_CLOSE);</span>
+<span class="nc" id="L214">            httpclient.execute(httpGet, new FutureCallback&lt;HttpResponse&gt;() {</span>
+                @Override
+                public void completed(final HttpResponse response) {
+                    try {
+<span class="nc" id="L218">                        handleResponse(response, machine, metricMap);</span>
+<span class="nc" id="L219">                        success.incrementAndGet();</span>
+<span class="nc" id="L220">                    } catch (Exception e) {</span>
+<span class="nc" id="L221">                        logger.error(msg + &quot; metric &quot; + url + &quot; error:&quot;, e);</span>
+                    } finally {
+<span class="nc" id="L223">                        latch.countDown();</span>
+                    }
+<span class="nc" id="L225">                }</span>
+
+                @Override
+                public void failed(final Exception ex) {
+<span class="nc" id="L229">                    latch.countDown();</span>
+<span class="nc" id="L230">                    fail.incrementAndGet();</span>
+<span class="nc" id="L231">                    httpGet.abort();</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">                    if (ex instanceof SocketTimeoutException) {</span>
+<span class="nc" id="L233">                        logger.error(&quot;Failed to fetch metric from &lt;{}&gt;: socket timeout&quot;, url);</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                    } else if (ex instanceof ConnectException) {</span>
+<span class="nc" id="L235">                        logger.error(&quot;Failed to fetch metric from &lt;{}&gt; (ConnectionException: {})&quot;, url, ex.getMessage());</span>
+                    } else {
+<span class="nc" id="L237">                        logger.error(msg + &quot; metric &quot; + url + &quot; error&quot;, ex);</span>
+                    }
+<span class="nc" id="L239">                }</span>
+
+                @Override
+                public void cancelled() {
+<span class="nc" id="L243">                    latch.countDown();</span>
+<span class="nc" id="L244">                    fail.incrementAndGet();</span>
+<span class="nc" id="L245">                    httpGet.abort();</span>
+<span class="nc" id="L246">                }</span>
+            });
+<span class="nc" id="L248">        }</span>
+        try {
+<span class="nc" id="L250">            latch.await(maxWaitSeconds, TimeUnit.SECONDS);</span>
+<span class="nc" id="L251">        } catch (Exception e) {</span>
+<span class="nc" id="L252">            logger.info(msg + &quot; metric, wait http client error:&quot;, e);</span>
+<span class="nc" id="L253">        }</span>
+<span class="nc" id="L254">        long cost = System.currentTimeMillis() - start;</span>
+        //logger.info(&quot;finished &quot; + msg + &quot; metric for &quot; + app + &quot;, time intervalMs [&quot; + startTime + &quot;, &quot; + endTime
+        //    + &quot;], total machines=&quot; + machines.size() + &quot;, dead=&quot; + dead + &quot;, fetch success=&quot;
+        //    + success + &quot;, fetch fail=&quot; + fail + &quot;, time cost=&quot; + cost + &quot; ms&quot;);
+<span class="nc" id="L258">        writeMetric(metricMap);</span>
+<span class="nc" id="L259">    }</span>
+
+    private void doFetchAppMetric(final String app) {
+<span class="nc" id="L262">        long now = System.currentTimeMillis();</span>
+<span class="nc" id="L263">        long lastFetchMs = now - MAX_LAST_FETCH_INTERVAL_MS;</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (appLastFetchTime.containsKey(app)) {</span>
+<span class="nc" id="L265">            lastFetchMs = Math.max(lastFetchMs, appLastFetchTime.get(app).get() + 1000);</span>
+        }
+        // trim milliseconds
+<span class="nc" id="L268">        lastFetchMs = lastFetchMs / 1000 * 1000;</span>
+<span class="nc" id="L269">        long endTime = lastFetchMs + FETCH_INTERVAL_SECOND * 1000;</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (endTime &gt; now - 1000 * 2) {</span>
+            // to near
+<span class="nc" id="L272">            return;</span>
+        }
+        // update last_fetch in advance.
+<span class="nc" id="L275">        appLastFetchTime.computeIfAbsent(app, a -&gt; new AtomicLong()).set(endTime);</span>
+<span class="nc" id="L276">        final long finalLastFetchMs = lastFetchMs;</span>
+<span class="nc" id="L277">        final long finalEndTime = endTime;</span>
+        try {
+            // do real fetch async
+<span class="nc" id="L280">            fetchWorker.submit(() -&gt; {</span>
+                try {
+<span class="nc" id="L282">                    fetchOnce(app, finalLastFetchMs, finalEndTime, 5);</span>
+<span class="nc" id="L283">                } catch (Exception e) {</span>
+<span class="nc" id="L284">                    logger.info(&quot;fetchOnce(&quot; + app + &quot;) error&quot;, e);</span>
+<span class="nc" id="L285">                }</span>
+<span class="nc" id="L286">            });</span>
+<span class="nc" id="L287">        } catch (Exception e) {</span>
+<span class="nc" id="L288">            logger.info(&quot;submit fetchOnce(&quot; + app + &quot;) fail, intervalMs [&quot; + lastFetchMs + &quot;, &quot; + endTime + &quot;]&quot;, e);</span>
+<span class="nc" id="L289">        }</span>
+<span class="nc" id="L290">    }</span>
+
+    private void handleResponse(final HttpResponse response, MachineInfo machine,
+                                Map&lt;String, MetricEntity&gt; metricMap) throws Exception {
+<span class="nc" id="L294">        int code = response.getStatusLine().getStatusCode();</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        if (code != HTTP_OK) {</span>
+<span class="nc" id="L296">            return;</span>
+        }
+<span class="nc" id="L298">        Charset charset = null;</span>
+        try {
+<span class="nc" id="L300">            String contentTypeStr = response.getFirstHeader(&quot;Content-type&quot;).getValue();</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">            if (StringUtil.isNotEmpty(contentTypeStr)) {</span>
+<span class="nc" id="L302">                ContentType contentType = ContentType.parse(contentTypeStr);</span>
+<span class="nc" id="L303">                charset = contentType.getCharset();</span>
+            }
+<span class="nc" id="L305">        } catch (Exception ignore) {</span>
+<span class="nc" id="L306">        }</span>
+<span class="nc bnc" id="L307" title="All 2 branches missed.">        String body = EntityUtils.toString(response.getEntity(), charset != null ? charset : DEFAULT_CHARSET);</span>
+<span class="nc bnc" id="L308" title="All 4 branches missed.">        if (StringUtil.isEmpty(body) || body.startsWith(NO_METRICS)) {</span>
+            //logger.info(machine.getApp() + &quot;:&quot; + machine.getIp() + &quot;:&quot; + machine.getPort() + &quot;, bodyStr is empty&quot;);
+<span class="nc" id="L310">            return;</span>
+        }
+<span class="nc" id="L312">        String[] lines = body.split(&quot;\n&quot;);</span>
+        //logger.info(machine.getApp() + &quot;:&quot; + machine.getIp() + &quot;:&quot; + machine.getPort() +
+        //    &quot;, bodyStr.length()=&quot; + body.length() + &quot;, lines=&quot; + lines.length);
+<span class="nc" id="L315">        handleBody(lines, machine, metricMap);</span>
+<span class="nc" id="L316">    }</span>
+
+    private void handleBody(String[] lines, MachineInfo machine, Map&lt;String, MetricEntity&gt; map) {
+        //logger.info(&quot;handleBody() lines=&quot; + lines.length + &quot;, machine=&quot; + machine);
+<span class="nc bnc" id="L320" title="All 2 branches missed.">        if (lines.length &lt; 1) {</span>
+<span class="nc" id="L321">            return;</span>
+        }
+
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        for (String line : lines) {</span>
+            try {
+<span class="nc" id="L326">                MetricNode node = MetricNode.fromThinString(line);</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">                if (shouldFilterOut(node.getResource())) {</span>
+<span class="nc" id="L328">                    continue;</span>
+                }
+                /*
+                 * aggregation metrics by app_resource_timeSecond, ignore ip and port.
+                 */
+<span class="nc" id="L333">                String key = buildMetricKey(machine.getApp(), node.getResource(), node.getTimestamp());</span>
+<span class="nc" id="L334">                MetricEntity entity = map.get(key);</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">                if (entity != null) {</span>
+<span class="nc" id="L336">                    entity.addPassQps(node.getPassQps());</span>
+<span class="nc" id="L337">                    entity.addBlockQps(node.getBlockQps());</span>
+<span class="nc" id="L338">                    entity.addRtAndSuccessQps(node.getRt(), node.getSuccessQps());</span>
+<span class="nc" id="L339">                    entity.addExceptionQps(node.getExceptionQps());</span>
+<span class="nc" id="L340">                    entity.addCount(1);</span>
+                } else {
+<span class="nc" id="L342">                    entity = new MetricEntity();</span>
+<span class="nc" id="L343">                    entity.setApp(machine.getApp());</span>
+<span class="nc" id="L344">                    entity.setTimestamp(new Date(node.getTimestamp()));</span>
+<span class="nc" id="L345">                    entity.setPassQps(node.getPassQps());</span>
+<span class="nc" id="L346">                    entity.setBlockQps(node.getBlockQps());</span>
+<span class="nc" id="L347">                    entity.setRtAndSuccessQps(node.getRt(), node.getSuccessQps());</span>
+<span class="nc" id="L348">                    entity.setExceptionQps(node.getExceptionQps());</span>
+<span class="nc" id="L349">                    entity.setCount(1);</span>
+<span class="nc" id="L350">                    entity.setResource(node.getResource());</span>
+<span class="nc" id="L351">                    map.put(key, entity);</span>
+                }
+<span class="nc" id="L353">            } catch (Exception e) {</span>
+<span class="nc" id="L354">                logger.warn(&quot;handleBody line exception, machine: {}, line: {}&quot;, machine.toLogString(), line);</span>
+<span class="nc" id="L355">            }</span>
+        }
+<span class="nc" id="L357">    }</span>
+
+    private String buildMetricKey(String app, String resource, long timestamp) {
+<span class="nc" id="L360">        return app + &quot;__&quot; + resource + &quot;__&quot; + (timestamp / 1000);</span>
+    }
+
+    private boolean shouldFilterOut(String resource) {
+<span class="nc" id="L364">        return RES_EXCLUSION_SET.contains(resource);</span>
+    }
+
+<span class="nc" id="L367">    private static final Set&lt;String&gt; RES_EXCLUSION_SET = new HashSet&lt;String&gt;() {{</span>
+<span class="nc" id="L368">       add(Constants.TOTAL_IN_RESOURCE_NAME);</span>
+<span class="nc" id="L369">       add(Constants.SYSTEM_LOAD_RESOURCE_NAME);</span>
+<span class="nc" id="L370">       add(Constants.CPU_USAGE_RESOURCE_NAME);</span>
+<span class="nc" id="L371">    }};</span>
+
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

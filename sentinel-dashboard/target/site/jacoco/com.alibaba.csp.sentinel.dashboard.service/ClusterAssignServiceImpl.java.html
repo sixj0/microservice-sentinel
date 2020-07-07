@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterAssignServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.service</a> &gt; <span class="el_source">ClusterAssignServiceImpl.java</span></div><h1>ClusterAssignServiceImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.service;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStatePairVO;
+import com.alibaba.csp.sentinel.util.AssertUtil;
+import com.alibaba.csp.sentinel.util.function.Tuple2;
+
+import com.alibaba.csp.sentinel.dashboard.client.SentinelApiClient;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterAppAssignResultVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterGroupEntity;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ClusterClientConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerFlowConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerTransportConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.request.ClusterAppAssignMap;
+import com.alibaba.csp.sentinel.dashboard.util.MachineUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.1
+ */
+@Service
+<span class="nc" id="L51">public class ClusterAssignServiceImpl implements ClusterAssignService {</span>
+
+<span class="nc" id="L53">    private final Logger LOGGER = LoggerFactory.getLogger(ClusterAssignServiceImpl.class);</span>
+
+    @Autowired
+    private SentinelApiClient sentinelApiClient;
+    @Autowired
+    private ClusterConfigService clusterConfigService;
+
+    private boolean isMachineInApp(/*@NonEmpty*/ String machineId) {
+<span class="nc" id="L61">        return machineId.contains(&quot;:&quot;);</span>
+    }
+
+    private ClusterAppAssignResultVO handleUnbindClusterServerNotInApp(String app, String machineId) {
+<span class="nc" id="L65">        Set&lt;String&gt; failedSet = new HashSet&lt;&gt;();</span>
+        try {
+<span class="nc" id="L67">            List&lt;ClusterUniversalStatePairVO&gt; list = clusterConfigService.getClusterUniversalState(app)</span>
+<span class="nc" id="L68">                .get(10, TimeUnit.SECONDS);</span>
+<span class="nc" id="L69">            Set&lt;String&gt; toModifySet = list.stream()</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">                .filter(e -&gt; e.getState().getStateInfo().getMode() == ClusterStateManager.CLUSTER_CLIENT)</span>
+<span class="nc" id="L71">                .filter(e -&gt; machineId.equals(e.getState().getClient().getClientConfig().getServerHost() + ':' +</span>
+<span class="nc" id="L72">                    e.getState().getClient().getClientConfig().getServerPort()))</span>
+<span class="nc" id="L73">                .map(e -&gt; e.getIp() + '@' + e.getCommandPort())</span>
+<span class="nc" id="L74">                .collect(Collectors.toSet());</span>
+            // Modify mode to NOT-STARTED for all associated token clients.
+<span class="nc" id="L76">            modifyToNonStarted(toModifySet, failedSet);</span>
+<span class="nc" id="L77">        } catch (Exception ex) {</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            Throwable e = ex instanceof ExecutionException ? ex.getCause() : ex;</span>
+<span class="nc" id="L79">            LOGGER.error(&quot;Failed to unbind machine &lt;{}&gt;&quot;, machineId, e);</span>
+<span class="nc" id="L80">            failedSet.add(machineId);</span>
+<span class="nc" id="L81">        }</span>
+<span class="nc" id="L82">        return new ClusterAppAssignResultVO()</span>
+<span class="nc" id="L83">            .setFailedClientSet(failedSet)</span>
+<span class="nc" id="L84">            .setFailedServerSet(new HashSet&lt;&gt;());</span>
+    }
+
+    private void modifyToNonStarted(Set&lt;String&gt; toModifySet, Set&lt;String&gt; failedSet) {
+<span class="nc" id="L88">        toModifySet.parallelStream()</span>
+<span class="nc" id="L89">            .map(MachineUtils::parseCommandIpAndPort)</span>
+<span class="nc" id="L90">            .filter(Optional::isPresent)</span>
+<span class="nc" id="L91">            .map(Optional::get)</span>
+<span class="nc" id="L92">            .map(e -&gt; {</span>
+<span class="nc" id="L93">                CompletableFuture&lt;Void&gt; f = modifyMode(e.r1, e.r2, ClusterStateManager.CLUSTER_NOT_STARTED);</span>
+<span class="nc" id="L94">                return Tuple2.of(e.r1 + '@' + e.r2, f);</span>
+            })
+<span class="nc" id="L96">            .forEach(f -&gt; handleFutureSync(f, failedSet));</span>
+<span class="nc" id="L97">    }</span>
+
+    @Override
+    public ClusterAppAssignResultVO unbindClusterServer(String app, String machineId) {
+<span class="nc" id="L101">        AssertUtil.assertNotBlank(app, &quot;app cannot be blank&quot;);</span>
+<span class="nc" id="L102">        AssertUtil.assertNotBlank(machineId, &quot;machineId cannot be blank&quot;);</span>
+
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (isMachineInApp(machineId)) {</span>
+<span class="nc" id="L105">            return handleUnbindClusterServerNotInApp(app, machineId);</span>
+        }
+<span class="nc" id="L107">        Set&lt;String&gt; failedSet = new HashSet&lt;&gt;();</span>
+        try {
+<span class="nc" id="L109">            ClusterGroupEntity entity = clusterConfigService.getClusterUniversalStateForAppMachine(app, machineId)</span>
+<span class="nc" id="L110">                .get(10, TimeUnit.SECONDS);</span>
+<span class="nc" id="L111">            Set&lt;String&gt; toModifySet = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L112">            toModifySet.add(machineId);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (entity.getClientSet() != null) {</span>
+<span class="nc" id="L114">                toModifySet.addAll(entity.getClientSet());</span>
+            }
+            // Modify mode to NOT-STARTED for all chosen token servers and associated token clients.
+<span class="nc" id="L117">            modifyToNonStarted(toModifySet, failedSet);</span>
+<span class="nc" id="L118">        } catch (Exception ex) {</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            Throwable e = ex instanceof ExecutionException ? ex.getCause() : ex;</span>
+<span class="nc" id="L120">            LOGGER.error(&quot;Failed to unbind machine &lt;{}&gt;&quot;, machineId, e);</span>
+<span class="nc" id="L121">            failedSet.add(machineId);</span>
+<span class="nc" id="L122">        }</span>
+<span class="nc" id="L123">        return new ClusterAppAssignResultVO()</span>
+<span class="nc" id="L124">            .setFailedClientSet(failedSet)</span>
+<span class="nc" id="L125">            .setFailedServerSet(new HashSet&lt;&gt;());</span>
+    }
+
+    @Override
+    public ClusterAppAssignResultVO unbindClusterServers(String app, Set&lt;String&gt; machineIdSet) {
+<span class="nc" id="L130">        AssertUtil.assertNotBlank(app, &quot;app cannot be blank&quot;);</span>
+<span class="nc bnc" id="L131" title="All 4 branches missed.">        AssertUtil.isTrue(machineIdSet != null &amp;&amp; !machineIdSet.isEmpty(), &quot;machineIdSet cannot be empty&quot;);</span>
+<span class="nc" id="L132">        ClusterAppAssignResultVO result = new ClusterAppAssignResultVO()</span>
+<span class="nc" id="L133">            .setFailedClientSet(new HashSet&lt;&gt;())</span>
+<span class="nc" id="L134">            .setFailedServerSet(new HashSet&lt;&gt;());</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        for (String machineId : machineIdSet) {</span>
+<span class="nc" id="L136">            ClusterAppAssignResultVO resultVO = unbindClusterServer(app, machineId);</span>
+<span class="nc" id="L137">            result.getFailedClientSet().addAll(resultVO.getFailedClientSet());</span>
+<span class="nc" id="L138">            result.getFailedServerSet().addAll(resultVO.getFailedServerSet());</span>
+<span class="nc" id="L139">        }</span>
+<span class="nc" id="L140">        return result;</span>
+    }
+
+    @Override
+    public ClusterAppAssignResultVO applyAssignToApp(String app, List&lt;ClusterAppAssignMap&gt; clusterMap,
+                                                     Set&lt;String&gt; remainingSet) {
+<span class="nc" id="L146">        AssertUtil.assertNotBlank(app, &quot;app cannot be blank&quot;);</span>
+<span class="nc" id="L147">        AssertUtil.notNull(clusterMap, &quot;clusterMap cannot be null&quot;);</span>
+<span class="nc" id="L148">        Set&lt;String&gt; failedServerSet = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L149">        Set&lt;String&gt; failedClientSet = new HashSet&lt;&gt;();</span>
+
+        // Assign server and apply config.
+<span class="nc" id="L152">        clusterMap.stream()</span>
+<span class="nc" id="L153">            .filter(Objects::nonNull)</span>
+<span class="nc" id="L154">            .filter(ClusterAppAssignMap::getBelongToApp)</span>
+<span class="nc" id="L155">            .map(e -&gt; {</span>
+<span class="nc" id="L156">                String ip = e.getIp();</span>
+<span class="nc" id="L157">                int commandPort = parsePort(e);</span>
+<span class="nc" id="L158">                CompletableFuture&lt;Void&gt; f = modifyMode(ip, commandPort, ClusterStateManager.CLUSTER_SERVER)</span>
+<span class="nc" id="L159">                    .thenCompose(v -&gt; applyServerConfigChange(app, ip, commandPort, e));</span>
+<span class="nc" id="L160">                return Tuple2.of(e.getMachineId(), f);</span>
+            })
+<span class="nc" id="L162">            .forEach(t -&gt; handleFutureSync(t, failedServerSet));</span>
+
+        // Assign client of servers and apply config.
+<span class="nc" id="L165">        clusterMap.parallelStream()</span>
+<span class="nc" id="L166">            .filter(Objects::nonNull)</span>
+<span class="nc" id="L167">            .forEach(e -&gt; applyAllClientConfigChange(app, e, failedClientSet));</span>
+
+        // Unbind remaining (unassigned) machines.
+<span class="nc" id="L170">        applyAllRemainingMachineSet(app, remainingSet, failedClientSet);</span>
+
+<span class="nc" id="L172">        return new ClusterAppAssignResultVO()</span>
+<span class="nc" id="L173">            .setFailedClientSet(failedClientSet)</span>
+<span class="nc" id="L174">            .setFailedServerSet(failedServerSet);</span>
+    }
+
+    private void applyAllRemainingMachineSet(String app, Set&lt;String&gt; remainingSet, Set&lt;String&gt; failedSet) {
+<span class="nc bnc" id="L178" title="All 4 branches missed.">        if (remainingSet == null || remainingSet.isEmpty()) {</span>
+<span class="nc" id="L179">            return;</span>
+        }
+<span class="nc" id="L181">        remainingSet.parallelStream()</span>
+<span class="nc" id="L182">            .filter(Objects::nonNull)</span>
+<span class="nc" id="L183">            .map(MachineUtils::parseCommandIpAndPort)</span>
+<span class="nc" id="L184">            .filter(Optional::isPresent)</span>
+<span class="nc" id="L185">            .map(Optional::get)</span>
+<span class="nc" id="L186">            .map(ipPort -&gt; {</span>
+<span class="nc" id="L187">                String ip = ipPort.r1;</span>
+<span class="nc" id="L188">                int commandPort = ipPort.r2;</span>
+<span class="nc" id="L189">                CompletableFuture&lt;Void&gt; f = modifyMode(ip, commandPort, ClusterStateManager.CLUSTER_NOT_STARTED);</span>
+<span class="nc" id="L190">                return Tuple2.of(ip + '@' + commandPort, f);</span>
+            })
+<span class="nc" id="L192">            .forEach(t -&gt; handleFutureSync(t, failedSet));</span>
+<span class="nc" id="L193">    }</span>
+
+    private void applyAllClientConfigChange(String app, ClusterAppAssignMap assignMap,
+                                            Set&lt;String&gt; failedSet) {
+<span class="nc" id="L197">        Set&lt;String&gt; clientSet = assignMap.getClientSet();</span>
+<span class="nc bnc" id="L198" title="All 4 branches missed.">        if (clientSet == null || clientSet.isEmpty()) {</span>
+<span class="nc" id="L199">            return;</span>
+        }
+<span class="nc" id="L201">        final String serverIp = assignMap.getIp();</span>
+<span class="nc" id="L202">        final int serverPort = assignMap.getPort();</span>
+<span class="nc" id="L203">        clientSet.stream()</span>
+<span class="nc" id="L204">            .map(MachineUtils::parseCommandIpAndPort)</span>
+<span class="nc" id="L205">            .filter(Optional::isPresent)</span>
+<span class="nc" id="L206">            .map(Optional::get)</span>
+<span class="nc" id="L207">            .map(ipPort -&gt; {</span>
+<span class="nc" id="L208">                CompletableFuture&lt;Void&gt; f = sentinelApiClient</span>
+<span class="nc" id="L209">                    .modifyClusterMode(ipPort.r1, ipPort.r2, ClusterStateManager.CLUSTER_CLIENT)</span>
+<span class="nc" id="L210">                    .thenCompose(v -&gt; sentinelApiClient.modifyClusterClientConfig(app, ipPort.r1, ipPort.r2,</span>
+<span class="nc" id="L211">                        new ClusterClientConfig().setRequestTimeout(20)</span>
+<span class="nc" id="L212">                            .setServerHost(serverIp)</span>
+<span class="nc" id="L213">                            .setServerPort(serverPort)</span>
+                    ));
+<span class="nc" id="L215">                return Tuple2.of(ipPort.r1 + '@' + ipPort.r2, f);</span>
+            })
+<span class="nc" id="L217">            .forEach(t -&gt; handleFutureSync(t, failedSet));</span>
+<span class="nc" id="L218">    }</span>
+
+    private void handleFutureSync(Tuple2&lt;String, CompletableFuture&lt;Void&gt;&gt; t, Set&lt;String&gt; failedSet) {
+        try {
+<span class="nc" id="L222">            t.r2.get(10, TimeUnit.SECONDS);</span>
+<span class="nc" id="L223">        } catch (Exception ex) {</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">            if (ex instanceof ExecutionException) {</span>
+<span class="nc" id="L225">                LOGGER.error(&quot;Request for &lt;{}&gt; failed&quot;, t.r1, ex.getCause());</span>
+            } else {
+<span class="nc" id="L227">                LOGGER.error(&quot;Request for &lt;{}&gt; failed&quot;, t.r1, ex);</span>
+            }
+<span class="nc" id="L229">            failedSet.add(t.r1);</span>
+<span class="nc" id="L230">        }</span>
+<span class="nc" id="L231">    }</span>
+
+    private CompletableFuture&lt;Void&gt; applyServerConfigChange(String app, String ip, int commandPort,
+                                                            ClusterAppAssignMap assignMap) {
+<span class="nc" id="L235">        ServerTransportConfig transportConfig = new ServerTransportConfig()</span>
+<span class="nc" id="L236">            .setPort(assignMap.getPort())</span>
+<span class="nc" id="L237">            .setIdleSeconds(600);</span>
+<span class="nc" id="L238">        return sentinelApiClient.modifyClusterServerTransportConfig(app, ip, commandPort, transportConfig)</span>
+<span class="nc" id="L239">            .thenCompose(v -&gt; applyServerFlowConfigChange(app, ip, commandPort, assignMap))</span>
+<span class="nc" id="L240">            .thenCompose(v -&gt; applyServerNamespaceSetConfig(app, ip, commandPort, assignMap));</span>
+    }
+
+    private CompletableFuture&lt;Void&gt; applyServerFlowConfigChange(String app, String ip, int commandPort,
+                                                                ClusterAppAssignMap assignMap) {
+<span class="nc" id="L245">        Double maxAllowedQps = assignMap.getMaxAllowedQps();</span>
+<span class="nc bnc" id="L246" title="All 6 branches missed.">        if (maxAllowedQps == null || maxAllowedQps &lt;= 0 || maxAllowedQps &gt; 20_0000) {</span>
+<span class="nc" id="L247">            return CompletableFuture.completedFuture(null);</span>
+        }
+<span class="nc" id="L249">        return sentinelApiClient.modifyClusterServerFlowConfig(app, ip, commandPort,</span>
+<span class="nc" id="L250">            new ServerFlowConfig().setMaxAllowedQps(maxAllowedQps));</span>
+    }
+
+    private CompletableFuture&lt;Void&gt; applyServerNamespaceSetConfig(String app, String ip, int commandPort,
+                                                                  ClusterAppAssignMap assignMap) {
+<span class="nc" id="L255">        Set&lt;String&gt; namespaceSet = assignMap.getNamespaceSet();</span>
+<span class="nc bnc" id="L256" title="All 4 branches missed.">        if (namespaceSet == null || namespaceSet.isEmpty()) {</span>
+<span class="nc" id="L257">            return CompletableFuture.completedFuture(null);</span>
+        }
+<span class="nc" id="L259">        return sentinelApiClient.modifyClusterServerNamespaceSet(app, ip, commandPort, namespaceSet);</span>
+    }
+
+    private CompletableFuture&lt;Void&gt; modifyMode(String ip, int port, int mode) {
+<span class="nc" id="L263">        return sentinelApiClient.modifyClusterMode(ip, port, mode);</span>
+    }
+
+    private int parsePort(ClusterAppAssignMap assignMap) {
+<span class="nc" id="L267">        return MachineUtils.parseCommandPort(assignMap.getMachineId())</span>
+<span class="nc" id="L268">            .orElse(ServerTransportConfig.DEFAULT_PORT);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

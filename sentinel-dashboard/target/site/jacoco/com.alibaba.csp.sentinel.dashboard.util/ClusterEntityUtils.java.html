@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterEntityUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.util</a> &gt; <span class="el_source">ClusterEntityUtils.java</span></div><h1>ClusterEntityUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.util;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterGroupEntity;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.ConnectionGroupVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.AppClusterClientStateWrapVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.AppClusterServerStateWrapVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterClientStateVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterServerStateVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStatePairVO;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.1
+ */
+public final class ClusterEntityUtils {
+
+    public static List&lt;AppClusterServerStateWrapVO&gt; wrapToAppClusterServerState(
+        List&lt;ClusterUniversalStatePairVO&gt; list) {
+<span class="nc bnc" id="L44" title="All 4 branches missed.">        if (list == null || list.isEmpty()) {</span>
+<span class="nc" id="L45">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L47">        Map&lt;String, AppClusterServerStateWrapVO&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L48">        Set&lt;String&gt; tokenServerSet = new HashSet&lt;&gt;();</span>
+        // Handle token servers that belong to current app.
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        for (ClusterUniversalStatePairVO stateVO : list) {</span>
+<span class="nc" id="L51">            int mode = stateVO.getState().getStateInfo().getMode();</span>
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">            if (mode == ClusterStateManager.CLUSTER_SERVER) {</span>
+<span class="nc" id="L54">                String ip = stateVO.getIp();</span>
+<span class="nc" id="L55">                String serverId = ip + '@' + stateVO.getCommandPort();</span>
+<span class="nc" id="L56">                ClusterServerStateVO serverStateVO = stateVO.getState().getServer();</span>
+<span class="nc" id="L57">                map.computeIfAbsent(serverId, v -&gt; new AppClusterServerStateWrapVO()</span>
+<span class="nc" id="L58">                    .setId(serverId)</span>
+<span class="nc" id="L59">                    .setIp(ip)</span>
+<span class="nc" id="L60">                    .setPort(serverStateVO.getPort())</span>
+<span class="nc" id="L61">                    .setState(serverStateVO)</span>
+<span class="nc" id="L62">                    .setBelongToApp(true)</span>
+<span class="nc" id="L63">                    .setConnectedCount(serverStateVO.getConnection().stream()</span>
+<span class="nc" id="L64">                        .mapToInt(ConnectionGroupVO::getConnectedCount)</span>
+<span class="nc" id="L65">                        .sum()</span>
+                    )
+                );
+<span class="nc" id="L68">                tokenServerSet.add(ip + &quot;:&quot; + serverStateVO.getPort());</span>
+            }
+<span class="nc" id="L70">        }</span>
+        // Handle token servers from other app.
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        for (ClusterUniversalStatePairVO stateVO : list) {</span>
+<span class="nc" id="L73">            int mode = stateVO.getState().getStateInfo().getMode();</span>
+
+<span class="nc bnc" id="L75" title="All 2 branches missed.">            if (mode == ClusterStateManager.CLUSTER_CLIENT) {</span>
+<span class="nc" id="L76">                ClusterClientStateVO clientState = stateVO.getState().getClient();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                if (clientState == null) {</span>
+<span class="nc" id="L78">                    continue;</span>
+                }
+<span class="nc" id="L80">                String serverIp = clientState.getClientConfig().getServerHost();</span>
+<span class="nc" id="L81">                int serverPort = clientState.getClientConfig().getServerPort();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                if (tokenServerSet.contains(serverIp + &quot;:&quot; + serverPort)) {</span>
+<span class="nc" id="L83">                    continue;</span>
+                }
+                // We are not able to get the commandPort of foreign token server directly.
+<span class="nc" id="L86">                String serverId = String.format(&quot;%s:%d&quot;, serverIp, serverPort);</span>
+<span class="nc" id="L87">                map.computeIfAbsent(serverId, v -&gt; new AppClusterServerStateWrapVO()</span>
+<span class="nc" id="L88">                    .setId(serverId)</span>
+<span class="nc" id="L89">                    .setIp(serverIp)</span>
+<span class="nc" id="L90">                    .setPort(serverPort)</span>
+<span class="nc" id="L91">                    .setBelongToApp(false)</span>
+                );
+            }
+<span class="nc" id="L94">        }</span>
+<span class="nc" id="L95">        return new ArrayList&lt;&gt;(map.values());</span>
+    }
+
+    public static List&lt;AppClusterClientStateWrapVO&gt; wrapToAppClusterClientState(
+        List&lt;ClusterUniversalStatePairVO&gt; list) {
+<span class="nc bnc" id="L100" title="All 4 branches missed.">        if (list == null || list.isEmpty()) {</span>
+<span class="nc" id="L101">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L103">        Map&lt;String, AppClusterClientStateWrapVO&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        for (ClusterUniversalStatePairVO stateVO : list) {</span>
+<span class="nc" id="L105">            int mode = stateVO.getState().getStateInfo().getMode();</span>
+
+<span class="nc bnc" id="L107" title="All 2 branches missed.">            if (mode == ClusterStateManager.CLUSTER_CLIENT) {</span>
+<span class="nc" id="L108">                String ip = stateVO.getIp();</span>
+<span class="nc" id="L109">                String clientId = ip + '@' + stateVO.getCommandPort();</span>
+<span class="nc" id="L110">                ClusterClientStateVO clientStateVO = stateVO.getState().getClient();</span>
+<span class="nc" id="L111">                map.computeIfAbsent(clientId, v -&gt; new AppClusterClientStateWrapVO()</span>
+<span class="nc" id="L112">                    .setId(clientId)</span>
+<span class="nc" id="L113">                    .setIp(ip)</span>
+<span class="nc" id="L114">                    .setState(clientStateVO)</span>
+<span class="nc" id="L115">                    .setCommandPort(stateVO.getCommandPort())</span>
+                );
+            }
+<span class="nc" id="L118">        }</span>
+<span class="nc" id="L119">        return new ArrayList&lt;&gt;(map.values());</span>
+    }
+
+    public static List&lt;ClusterGroupEntity&gt; wrapToClusterGroup(List&lt;ClusterUniversalStatePairVO&gt; list) {
+<span class="nc bnc" id="L123" title="All 4 branches missed.">        if (list == null || list.isEmpty()) {</span>
+<span class="nc" id="L124">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L126">        Map&lt;String, ClusterGroupEntity&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        for (ClusterUniversalStatePairVO stateVO : list) {</span>
+<span class="nc" id="L128">            int mode = stateVO.getState().getStateInfo().getMode();</span>
+<span class="nc" id="L129">            String ip = stateVO.getIp();</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">            if (mode == ClusterStateManager.CLUSTER_SERVER) {</span>
+<span class="nc" id="L131">                String serverAddress = getIp(ip);</span>
+<span class="nc" id="L132">                int port = stateVO.getState().getServer().getPort();</span>
+<span class="nc" id="L133">                map.computeIfAbsent(serverAddress, v -&gt; new ClusterGroupEntity()</span>
+<span class="nc" id="L134">                    .setBelongToApp(true).setMachineId(ip + '@' + stateVO.getCommandPort())</span>
+<span class="nc" id="L135">                    .setIp(ip).setPort(port)</span>
+                );
+            }
+<span class="nc" id="L138">        }</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        for (ClusterUniversalStatePairVO stateVO : list) {</span>
+<span class="nc" id="L140">            int mode = stateVO.getState().getStateInfo().getMode();</span>
+<span class="nc" id="L141">            String ip = stateVO.getIp();</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            if (mode == ClusterStateManager.CLUSTER_CLIENT) {</span>
+<span class="nc" id="L143">                String targetServer = stateVO.getState().getClient().getClientConfig().getServerHost();</span>
+<span class="nc" id="L144">                Integer targetPort = stateVO.getState().getClient().getClientConfig().getServerPort();</span>
+<span class="nc bnc" id="L145" title="All 6 branches missed.">                if (StringUtil.isBlank(targetServer) || targetPort == null || targetPort &lt;= 0) {</span>
+<span class="nc" id="L146">                    continue;</span>
+                }
+
+<span class="nc" id="L149">                ClusterGroupEntity group = map.computeIfAbsent(targetServer,</span>
+<span class="nc" id="L150">                    v -&gt; new ClusterGroupEntity()</span>
+<span class="nc" id="L151">                        .setBelongToApp(true).setMachineId(targetServer)</span>
+<span class="nc" id="L152">                        .setIp(targetServer).setPort(targetPort)</span>
+                );
+<span class="nc" id="L154">                group.getClientSet().add(ip + '@' + stateVO.getCommandPort());</span>
+            }
+<span class="nc" id="L156">        }</span>
+<span class="nc" id="L157">        return new ArrayList&lt;&gt;(map.values());</span>
+    }
+
+    private static String getIp(String str) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (str.contains(&quot;:&quot;)) {</span>
+<span class="nc" id="L162">            return str.split(&quot;:&quot;)[0];</span>
+        }
+<span class="nc" id="L164">        return str;</span>
+    }
+
+    private ClusterEntityUtils() {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

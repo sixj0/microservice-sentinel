@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.config</a> &gt; <span class="el_source">WebConfig.java</span></div><h1>WebConfig.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.config;
+
+import com.alibaba.csp.sentinel.adapter.servlet.CommonFilter;
+import com.alibaba.csp.sentinel.dashboard.filter.AuthFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import javax.servlet.Filter;
+
+/**
+ * @author leyou
+ */
+@Configuration
+<span class="nc" id="L36">public class WebConfig implements WebMvcConfigurer {</span>
+
+<span class="nc" id="L38">    private final Logger logger = LoggerFactory.getLogger(WebConfig.class);</span>
+
+    @Autowired
+    private AuthFilter authFilter;
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+<span class="nc" id="L45">        registry.addResourceHandler(&quot;/**&quot;).addResourceLocations(&quot;classpath:/resources/&quot;);</span>
+<span class="nc" id="L46">    }</span>
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+<span class="nc" id="L50">        registry.addViewController(&quot;/&quot;).setViewName(&quot;forward:/index.htm&quot;);</span>
+<span class="nc" id="L51">    }</span>
+
+    /**
+     * Add {@link CommonFilter} to the server, this is the simplest way to use Sentinel
+     * for Web application.
+     */
+    @Bean
+    public FilterRegistrationBean sentinelFilterRegistration() {
+<span class="nc" id="L59">        FilterRegistrationBean&lt;Filter&gt; registration = new FilterRegistrationBean&lt;&gt;();</span>
+<span class="nc" id="L60">        registration.setFilter(new CommonFilter());</span>
+<span class="nc" id="L61">        registration.addUrlPatterns(&quot;/*&quot;);</span>
+<span class="nc" id="L62">        registration.setName(&quot;sentinelFilter&quot;);</span>
+<span class="nc" id="L63">        registration.setOrder(1);</span>
+
+<span class="nc" id="L65">        logger.info(&quot;Sentinel servlet CommonFilter registered&quot;);</span>
+
+<span class="nc" id="L67">        return registration;</span>
+    }
+
+    @Bean
+    public FilterRegistrationBean authenticationFilterRegistration() {
+<span class="nc" id="L72">        FilterRegistrationBean&lt;Filter&gt; registration = new FilterRegistrationBean&lt;&gt;();</span>
+<span class="nc" id="L73">        registration.setFilter(authFilter);</span>
+<span class="nc" id="L74">        registration.addUrlPatterns(&quot;/*&quot;);</span>
+<span class="nc" id="L75">        registration.setName(&quot;authenticationFilter&quot;);</span>
+<span class="nc" id="L76">        registration.setOrder(0);</span>
+<span class="nc" id="L77">        return registration;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

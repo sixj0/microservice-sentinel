@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DemoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.controller</a> &gt; <span class="el_source">DemoController.java</span></div><h1>DemoController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller;
+
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.EntryType;
+import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.context.ContextUtil;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+
+@Controller
+@RequestMapping(value = &quot;/demo&quot;, produces = MediaType.APPLICATION_JSON_VALUE)
+<span class="nc" id="L36">public class DemoController {</span>
+
+<span class="nc" id="L38">    Logger logger = LoggerFactory.getLogger(MachineRegistryController.class);</span>
+
+    @RequestMapping(&quot;/greeting&quot;)
+    public String greeting() {
+<span class="nc" id="L42">        return &quot;index&quot;;</span>
+    }
+
+    @RequestMapping(&quot;/link&quot;)
+    @ResponseBody
+    public String link() throws BlockException {
+
+<span class="nc" id="L49">        Entry entry = SphU.entry(&quot;head1&quot;, EntryType.IN);</span>
+
+<span class="nc" id="L51">        Entry entry1 = SphU.entry(&quot;head2&quot;, EntryType.IN);</span>
+<span class="nc" id="L52">        Entry entry2 = SphU.entry(&quot;head3&quot;, EntryType.IN);</span>
+<span class="nc" id="L53">        Entry entry3 = SphU.entry(&quot;head4&quot;, EntryType.IN);</span>
+
+<span class="nc" id="L55">        entry3.exit();</span>
+<span class="nc" id="L56">        entry2.exit();</span>
+<span class="nc" id="L57">        entry1.exit();</span>
+<span class="nc" id="L58">        entry.exit();</span>
+<span class="nc" id="L59">        return &quot;successfully create a call link&quot;;</span>
+    }
+
+    @RequestMapping(&quot;/loop&quot;)
+    @ResponseBody
+    public String loop(String name, int time) throws BlockException {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        for (int i = 0; i &lt; 10; i++) {</span>
+<span class="nc" id="L66">            Thread timer = new Thread(new RunTask(name, time, false));</span>
+<span class="nc" id="L67">            timer.setName(&quot;false&quot;);</span>
+<span class="nc" id="L68">            timer.start();</span>
+        }
+<span class="nc" id="L70">        return &quot;successfully create a loop thread&quot;;</span>
+    }
+
+    @RequestMapping(&quot;/slow&quot;)
+    @ResponseBody
+    public String slow(String name, int time) throws BlockException {
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        for (int i = 0; i &lt; 10; i++) {</span>
+<span class="nc" id="L77">            Thread timer = new Thread(new RunTask(name, time, true));</span>
+<span class="nc" id="L78">            timer.setName(&quot;false&quot;);</span>
+<span class="nc" id="L79">            timer.start();</span>
+        }
+<span class="nc" id="L81">        return &quot;successfully create a loop thread&quot;;</span>
+    }
+
+    static class RunTask implements Runnable {
+        int time;
+<span class="nc" id="L86">        boolean stop = false;</span>
+        String name;
+<span class="nc" id="L88">        boolean slow = false;</span>
+
+        public RunTask(String name, int time, boolean slow) {
+<span class="nc" id="L91">            super();</span>
+<span class="nc" id="L92">            this.time = time;</span>
+<span class="nc" id="L93">            this.name = name;</span>
+<span class="nc" id="L94">            this.slow = slow;</span>
+<span class="nc" id="L95">        }</span>
+
+        @Override
+        public void run() {
+<span class="nc" id="L99">            long startTime = System.currentTimeMillis();</span>
+<span class="nc" id="L100">            ContextUtil.enter(String.valueOf(startTime));</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">            while (!stop) {</span>
+
+<span class="nc" id="L103">                long now = System.currentTimeMillis();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                if (now - startTime &gt; time * 1000) {</span>
+<span class="nc" id="L105">                    stop = true;</span>
+                }
+<span class="nc" id="L107">                Entry e1 = null;</span>
+                try {
+<span class="nc" id="L109">                    e1 = SphU.entry(name);</span>
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                    if (slow == true) {</span>
+<span class="nc" id="L112">                        TimeUnit.MILLISECONDS.sleep(3000);</span>
+                    }
+
+<span class="nc" id="L115">                } catch (Exception e) {</span>
+                } finally {
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                    if (e1 != null) {</span>
+<span class="nc" id="L118">                        e1.exit();</span>
+                    }
+                }
+<span class="nc" id="L121">                Random random2 = new Random();</span>
+                try {
+<span class="nc" id="L123">                    TimeUnit.MILLISECONDS.sleep(random2.nextInt(200));</span>
+<span class="nc" id="L124">                } catch (InterruptedException e) {</span>
+                    // TODO Auto-generated catch block
+<span class="nc" id="L126">                    e.printStackTrace();</span>
+<span class="nc" id="L127">                }</span>
+
+<span class="nc" id="L129">            }</span>
+<span class="nc" id="L130">            ContextUtil.exit();</span>
+<span class="nc" id="L131">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

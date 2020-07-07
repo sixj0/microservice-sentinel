@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetricVo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.vo</a> &gt; <span class="el_source">MetricVo.java</span></div><h1>MetricVo.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.vo;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.MetricEntity;
+
+/**
+ * @author leyou
+ */
+public class MetricVo implements Comparable&lt;MetricVo&gt; {
+    private Long id;
+    private String app;
+    private Long timestamp;
+<span class="nc" id="L31">    private Long gmtCreate = System.currentTimeMillis();</span>
+    private String resource;
+    private Long passQps;
+    private Long blockQps;
+    private Long successQps;
+    private Long exceptionQps;
+    /**
+     * average rt
+     */
+    private Double rt;
+    private Integer count;
+
+<span class="nc" id="L43">    public MetricVo() {</span>
+<span class="nc" id="L44">    }</span>
+
+    public static List&lt;MetricVo&gt; fromMetricEntities(Collection&lt;MetricEntity&gt; entities) {
+<span class="nc" id="L47">        List&lt;MetricVo&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (entities != null) {</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            for (MetricEntity entity : entities) {</span>
+<span class="nc" id="L50">                list.add(fromMetricEntity(entity));</span>
+<span class="nc" id="L51">            }</span>
+        }
+<span class="nc" id="L53">        return list;</span>
+    }
+
+    /**
+     * 保留资源名为identity的结果。
+     *
+     * @param entities 通过hashCode查找到的MetricEntities
+     * @param identity 真正需要查找的资源名
+     * @return
+     */
+    public static List&lt;MetricVo&gt; fromMetricEntities(Collection&lt;MetricEntity&gt; entities, String identity) {
+<span class="nc" id="L64">        List&lt;MetricVo&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (entities != null) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">            for (MetricEntity entity : entities) {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">                if (entity.getResource().equals(identity)) {</span>
+<span class="nc" id="L68">                    list.add(fromMetricEntity(entity));</span>
+                }
+<span class="nc" id="L70">            }</span>
+        }
+<span class="nc" id="L72">        return list;</span>
+    }
+
+    public static MetricVo fromMetricEntity(MetricEntity entity) {
+<span class="nc" id="L76">        MetricVo vo = new MetricVo();</span>
+<span class="nc" id="L77">        vo.id = entity.getId();</span>
+<span class="nc" id="L78">        vo.app = entity.getApp();</span>
+<span class="nc" id="L79">        vo.timestamp = entity.getTimestamp().getTime();</span>
+<span class="nc" id="L80">        vo.gmtCreate = entity.getGmtCreate().getTime();</span>
+<span class="nc" id="L81">        vo.resource = entity.getResource();</span>
+<span class="nc" id="L82">        vo.passQps = entity.getPassQps();</span>
+<span class="nc" id="L83">        vo.blockQps = entity.getBlockQps();</span>
+<span class="nc" id="L84">        vo.successQps = entity.getSuccessQps();</span>
+<span class="nc" id="L85">        vo.exceptionQps = entity.getExceptionQps();</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (entity.getSuccessQps() != 0) {</span>
+<span class="nc" id="L87">            vo.rt = entity.getRt() / entity.getSuccessQps();</span>
+        } else {
+<span class="nc" id="L89">            vo.rt = 0D;</span>
+        }
+<span class="nc" id="L91">        vo.count = entity.getCount();</span>
+<span class="nc" id="L92">        return vo;</span>
+    }
+
+    public static MetricVo parse(String line) {
+<span class="nc" id="L96">        String[] strs = line.split(&quot;\\|&quot;);</span>
+<span class="nc" id="L97">        long timestamp = Long.parseLong(strs[0]);</span>
+<span class="nc" id="L98">        String identity = strs[1];</span>
+<span class="nc" id="L99">        long passQps = Long.parseLong(strs[2]);</span>
+<span class="nc" id="L100">        long blockQps = Long.parseLong(strs[3]);</span>
+<span class="nc" id="L101">        long exception = Long.parseLong(strs[4]);</span>
+<span class="nc" id="L102">        double rt = Double.parseDouble(strs[5]);</span>
+<span class="nc" id="L103">        long successQps = Long.parseLong(strs[6]);</span>
+<span class="nc" id="L104">        MetricVo vo = new MetricVo();</span>
+<span class="nc" id="L105">        vo.timestamp = timestamp;</span>
+<span class="nc" id="L106">        vo.resource = identity;</span>
+<span class="nc" id="L107">        vo.passQps = passQps;</span>
+<span class="nc" id="L108">        vo.blockQps = blockQps;</span>
+<span class="nc" id="L109">        vo.successQps = successQps;</span>
+<span class="nc" id="L110">        vo.exceptionQps = exception;</span>
+<span class="nc" id="L111">        vo.rt = rt;</span>
+<span class="nc" id="L112">        vo.count = 1;</span>
+<span class="nc" id="L113">        return vo;</span>
+    }
+
+    public Long getId() {
+<span class="nc" id="L117">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L121">        this.id = id;</span>
+<span class="nc" id="L122">    }</span>
+
+    public String getApp() {
+<span class="nc" id="L125">        return app;</span>
+    }
+
+    public void setApp(String app) {
+<span class="nc" id="L129">        this.app = app;</span>
+<span class="nc" id="L130">    }</span>
+
+    public Long getTimestamp() {
+<span class="nc" id="L133">        return timestamp;</span>
+    }
+
+    public void setTimestamp(Long timestamp) {
+<span class="nc" id="L137">        this.timestamp = timestamp;</span>
+<span class="nc" id="L138">    }</span>
+
+    public Long getGmtCreate() {
+<span class="nc" id="L141">        return gmtCreate;</span>
+    }
+
+    public void setGmtCreate(Long gmtCreate) {
+<span class="nc" id="L145">        this.gmtCreate = gmtCreate;</span>
+<span class="nc" id="L146">    }</span>
+
+    public String getResource() {
+<span class="nc" id="L149">        return resource;</span>
+    }
+
+    public void setResource(String resource) {
+<span class="nc" id="L153">        this.resource = resource;</span>
+<span class="nc" id="L154">    }</span>
+
+    public Long getPassQps() {
+<span class="nc" id="L157">        return passQps;</span>
+    }
+
+    public void setPassQps(Long passQps) {
+<span class="nc" id="L161">        this.passQps = passQps;</span>
+<span class="nc" id="L162">    }</span>
+
+    public Long getBlockQps() {
+<span class="nc" id="L165">        return blockQps;</span>
+    }
+
+    public void setBlockQps(Long blockQps) {
+<span class="nc" id="L169">        this.blockQps = blockQps;</span>
+<span class="nc" id="L170">    }</span>
+
+    public Long getSuccessQps() {
+<span class="nc" id="L173">        return successQps;</span>
+    }
+
+    public void setSuccessQps(Long successQps) {
+<span class="nc" id="L177">        this.successQps = successQps;</span>
+<span class="nc" id="L178">    }</span>
+
+    public Long getExceptionQps() {
+<span class="nc" id="L181">        return exceptionQps;</span>
+    }
+
+    public void setExceptionQps(Long exceptionQps) {
+<span class="nc" id="L185">        this.exceptionQps = exceptionQps;</span>
+<span class="nc" id="L186">    }</span>
+
+    public Double getRt() {
+<span class="nc" id="L189">        return rt;</span>
+    }
+
+    public void setRt(Double rt) {
+<span class="nc" id="L193">        this.rt = rt;</span>
+<span class="nc" id="L194">    }</span>
+
+    public Integer getCount() {
+<span class="nc" id="L197">        return count;</span>
+    }
+
+    public void setCount(Integer count) {
+<span class="nc" id="L201">        this.count = count;</span>
+<span class="nc" id="L202">    }</span>
+
+    @Override
+    public int compareTo(MetricVo o) {
+<span class="nc" id="L206">        return Long.compare(this.timestamp, o.timestamp);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

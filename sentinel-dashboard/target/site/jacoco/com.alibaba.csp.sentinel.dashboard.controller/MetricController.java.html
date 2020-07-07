@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetricController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.controller</a> &gt; <span class="el_source">MetricController.java</span></div><h1>MetricController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+import com.alibaba.csp.sentinel.dashboard.repository.metric.MetricsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.MetricEntity;
+import com.alibaba.csp.sentinel.dashboard.domain.vo.MetricVo;
+
+/**
+ * @author leyou
+ */
+@Controller
+@RequestMapping(value = &quot;/metric&quot;, produces = MediaType.APPLICATION_JSON_VALUE)
+<span class="nc" id="L47">public class MetricController {</span>
+
+<span class="nc" id="L49">    private static Logger logger = LoggerFactory.getLogger(MetricController.class);</span>
+
+    private static final long maxQueryIntervalMs = 1000 * 60 * 60;
+
+    @Autowired
+    private MetricsRepository&lt;MetricEntity&gt; metricStore;
+
+    @ResponseBody
+    @RequestMapping(&quot;/queryTopResourceMetric.json&quot;)
+    public Result&lt;?&gt; queryTopResourceMetric(final String app,
+                                            Integer pageIndex,
+                                            Integer pageSize,
+                                            Boolean desc,
+                                            Long startTime, Long endTime, String searchKey) {
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L64">            return Result.ofFail(-1, &quot;app can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L66" title="All 4 branches missed.">        if (pageIndex == null || pageIndex &lt;= 0) {</span>
+<span class="nc" id="L67">            pageIndex = 1;</span>
+        }
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (pageSize == null) {</span>
+<span class="nc" id="L70">            pageSize = 6;</span>
+        }
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (pageSize &gt;= 20) {</span>
+<span class="nc" id="L73">            pageSize = 20;</span>
+        }
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (desc == null) {</span>
+<span class="nc" id="L76">            desc = true;</span>
+        }
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (endTime == null) {</span>
+<span class="nc" id="L79">            endTime = System.currentTimeMillis();</span>
+        }
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (startTime == null) {</span>
+<span class="nc" id="L82">            startTime = endTime - 1000 * 60 * 5;</span>
+        }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (endTime - startTime &gt; maxQueryIntervalMs) {</span>
+<span class="nc" id="L85">            return Result.ofFail(-1, &quot;time intervalMs is too big, must &lt;= 1h&quot;);</span>
+        }
+<span class="nc" id="L87">        List&lt;String&gt; resources = metricStore.listResourcesOfApp(app);</span>
+<span class="nc" id="L88">        logger.debug(&quot;queryTopResourceMetric(), resources.size()={}&quot;, resources.size());</span>
+
+<span class="nc bnc" id="L90" title="All 4 branches missed.">        if (resources == null || resources.isEmpty()) {</span>
+<span class="nc" id="L91">            return Result.ofSuccess(null);</span>
+        }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (!desc) {</span>
+<span class="nc" id="L94">            Collections.reverse(resources);</span>
+        }
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (StringUtil.isNotEmpty(searchKey)) {</span>
+<span class="nc" id="L97">            List&lt;String&gt; searched = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            for (String resource : resources) {</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                if (resource.contains(searchKey)) {</span>
+<span class="nc" id="L100">                    searched.add(resource);</span>
+                }
+<span class="nc" id="L102">            }</span>
+<span class="nc" id="L103">            resources = searched;</span>
+        }
+<span class="nc" id="L105">        int totalPage = (resources.size() + pageSize - 1) / pageSize;</span>
+<span class="nc" id="L106">        List&lt;String&gt; topResource = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (pageIndex &lt;= totalPage) {</span>
+<span class="nc" id="L108">            topResource = resources.subList((pageIndex - 1) * pageSize,</span>
+<span class="nc" id="L109">                Math.min(pageIndex * pageSize, resources.size()));</span>
+        }
+<span class="nc" id="L111">        final Map&lt;String, Iterable&lt;MetricVo&gt;&gt; map = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="nc" id="L112">        logger.debug(&quot;topResource={}&quot;, topResource);</span>
+<span class="nc" id="L113">        long time = System.currentTimeMillis();</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        for (final String resource : topResource) {</span>
+<span class="nc" id="L115">            List&lt;MetricEntity&gt; entities = metricStore.queryByAppAndResourceBetween(</span>
+<span class="nc" id="L116">                app, resource, startTime, endTime);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            logger.debug(&quot;resource={}, entities.size()={}&quot;, resource, entities == null ? &quot;null&quot; : entities.size());</span>
+<span class="nc" id="L118">            List&lt;MetricVo&gt; vos = MetricVo.fromMetricEntities(entities, resource);</span>
+<span class="nc" id="L119">            Iterable&lt;MetricVo&gt; vosSorted = sortMetricVoAndDistinct(vos);</span>
+<span class="nc" id="L120">            map.put(resource, vosSorted);</span>
+<span class="nc" id="L121">        }</span>
+<span class="nc" id="L122">        logger.debug(&quot;queryTopResourceMetric() total query time={} ms&quot;, System.currentTimeMillis() - time);</span>
+<span class="nc" id="L123">        Map&lt;String, Object&gt; resultMap = new HashMap&lt;&gt;(16);</span>
+<span class="nc" id="L124">        resultMap.put(&quot;totalCount&quot;, resources.size());</span>
+<span class="nc" id="L125">        resultMap.put(&quot;totalPage&quot;, totalPage);</span>
+<span class="nc" id="L126">        resultMap.put(&quot;pageIndex&quot;, pageIndex);</span>
+<span class="nc" id="L127">        resultMap.put(&quot;pageSize&quot;, pageSize);</span>
+
+<span class="nc" id="L129">        Map&lt;String, Iterable&lt;MetricVo&gt;&gt; map2 = new LinkedHashMap&lt;&gt;();</span>
+        // order matters.
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        for (String identity : topResource) {</span>
+<span class="nc" id="L132">            map2.put(identity, map.get(identity));</span>
+<span class="nc" id="L133">        }</span>
+<span class="nc" id="L134">        resultMap.put(&quot;metric&quot;, map2);</span>
+<span class="nc" id="L135">        return Result.ofSuccess(resultMap);</span>
+    }
+
+    @ResponseBody
+    @RequestMapping(&quot;/queryByAppAndResource.json&quot;)
+    public Result&lt;?&gt; queryByAppAndResource(String app, String identity, Long startTime, Long endTime) {
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L142">            return Result.ofFail(-1, &quot;app can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (StringUtil.isEmpty(identity)) {</span>
+<span class="nc" id="L145">            return Result.ofFail(-1, &quot;identity can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (endTime == null) {</span>
+<span class="nc" id="L148">            endTime = System.currentTimeMillis();</span>
+        }
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (startTime == null) {</span>
+<span class="nc" id="L151">            startTime = endTime - 1000 * 60;</span>
+        }
+<span class="nc bnc" id="L153" title="All 2 branches missed.">        if (endTime - startTime &gt; maxQueryIntervalMs) {</span>
+<span class="nc" id="L154">            return Result.ofFail(-1, &quot;time intervalMs is too big, must &lt;= 1h&quot;);</span>
+        }
+<span class="nc" id="L156">        List&lt;MetricEntity&gt; entities = metricStore.queryByAppAndResourceBetween(</span>
+<span class="nc" id="L157">            app, identity, startTime, endTime);</span>
+<span class="nc" id="L158">        List&lt;MetricVo&gt; vos = MetricVo.fromMetricEntities(entities, identity);</span>
+<span class="nc" id="L159">        return Result.ofSuccess(sortMetricVoAndDistinct(vos));</span>
+    }
+
+    private Iterable&lt;MetricVo&gt; sortMetricVoAndDistinct(List&lt;MetricVo&gt; vos) {
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (vos == null) {</span>
+<span class="nc" id="L164">            return null;</span>
+        }
+<span class="nc" id="L166">        Map&lt;Long, MetricVo&gt; map = new TreeMap&lt;&gt;();</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        for (MetricVo vo : vos) {</span>
+<span class="nc" id="L168">            MetricVo oldVo = map.get(vo.getTimestamp());</span>
+<span class="nc bnc" id="L169" title="All 4 branches missed.">            if (oldVo == null || vo.getGmtCreate() &gt; oldVo.getGmtCreate()) {</span>
+<span class="nc" id="L170">                map.put(vo.getTimestamp(), vo);</span>
+            }
+<span class="nc" id="L172">        }</span>
+<span class="nc" id="L173">        return map.values();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

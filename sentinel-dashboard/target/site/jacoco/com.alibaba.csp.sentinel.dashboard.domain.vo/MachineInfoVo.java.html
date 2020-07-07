@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MachineInfoVo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.vo</a> &gt; <span class="el_source">MachineInfoVo.java</span></div><h1>MachineInfoVo.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.vo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.alibaba.csp.sentinel.dashboard.discovery.MachineInfo;
+
+/**
+ * @author leyou
+ */
+<span class="nc" id="L26">public class MachineInfoVo {</span>
+
+    private String app;
+    private String hostname;
+    private String ip;
+    private int port;
+    private long heartbeatVersion;
+    private long lastHeartbeat;
+    private boolean healthy;
+
+    private String version;
+
+    public static List&lt;MachineInfoVo&gt; fromMachineInfoList(List&lt;MachineInfo&gt; machines) {
+<span class="nc" id="L39">        List&lt;MachineInfoVo&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        for (MachineInfo machine : machines) {</span>
+<span class="nc" id="L41">            list.add(fromMachineInfo(machine));</span>
+<span class="nc" id="L42">        }</span>
+<span class="nc" id="L43">        return list;</span>
+    }
+
+    public static MachineInfoVo fromMachineInfo(MachineInfo machine) {
+<span class="nc" id="L47">        MachineInfoVo vo = new MachineInfoVo();</span>
+<span class="nc" id="L48">        vo.setApp(machine.getApp());</span>
+<span class="nc" id="L49">        vo.setHostname(machine.getHostname());</span>
+<span class="nc" id="L50">        vo.setIp(machine.getIp());</span>
+<span class="nc" id="L51">        vo.setPort(machine.getPort());</span>
+<span class="nc" id="L52">        vo.setLastHeartbeat(machine.getLastHeartbeat());</span>
+<span class="nc" id="L53">        vo.setHeartbeatVersion(machine.getHeartbeatVersion());</span>
+<span class="nc" id="L54">        vo.setVersion(machine.getVersion());</span>
+<span class="nc" id="L55">        vo.setHealthy(machine.isHealthy());</span>
+<span class="nc" id="L56">        return vo;</span>
+    }
+
+    public String getApp() {
+<span class="nc" id="L60">        return app;</span>
+    }
+
+    public void setApp(String app) {
+<span class="nc" id="L64">        this.app = app;</span>
+<span class="nc" id="L65">    }</span>
+
+    public String getHostname() {
+<span class="nc" id="L68">        return hostname;</span>
+    }
+
+    public void setHostname(String hostname) {
+<span class="nc" id="L72">        this.hostname = hostname;</span>
+<span class="nc" id="L73">    }</span>
+
+    public String getIp() {
+<span class="nc" id="L76">        return ip;</span>
+    }
+
+    public void setIp(String ip) {
+<span class="nc" id="L80">        this.ip = ip;</span>
+<span class="nc" id="L81">    }</span>
+
+    public int getPort() {
+<span class="nc" id="L84">        return port;</span>
+    }
+
+    public void setPort(int port) {
+<span class="nc" id="L88">        this.port = port;</span>
+<span class="nc" id="L89">    }</span>
+
+    public long getLastHeartbeat() {
+<span class="nc" id="L92">        return lastHeartbeat;</span>
+    }
+    
+    public void setLastHeartbeat(long lastHeartbeat) {
+<span class="nc" id="L96">        this.lastHeartbeat = lastHeartbeat;</span>
+<span class="nc" id="L97">    }</span>
+    
+    public void setHeartbeatVersion(long heartbeatVersion) {
+<span class="nc" id="L100">        this.heartbeatVersion = heartbeatVersion;</span>
+<span class="nc" id="L101">    }</span>
+    
+    public long getHeartbeatVersion() {
+<span class="nc" id="L104">        return heartbeatVersion;</span>
+    }
+
+    public String getVersion() {
+<span class="nc" id="L108">        return version;</span>
+    }
+
+    public MachineInfoVo setVersion(String version) {
+<span class="nc" id="L112">        this.version = version;</span>
+<span class="nc" id="L113">        return this;</span>
+    }
+
+    public boolean isHealthy() {
+<span class="nc" id="L117">        return healthy;</span>
+    }
+
+    public void setHealthy(boolean healthy) {
+<span class="nc" id="L121">        this.healthy = healthy;</span>
+<span class="nc" id="L122">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

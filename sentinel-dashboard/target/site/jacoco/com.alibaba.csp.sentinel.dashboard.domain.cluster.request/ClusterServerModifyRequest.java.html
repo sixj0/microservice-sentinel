@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterServerModifyRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.cluster.request</a> &gt; <span class="el_source">ClusterServerModifyRequest.java</span></div><h1>ClusterServerModifyRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.cluster.request;
+
+import java.util.Set;
+
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerFlowConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerTransportConfig;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+<span class="nc" id="L27">public class ClusterServerModifyRequest implements ClusterModifyRequest {</span>
+
+    private String app;
+    private String ip;
+    private Integer port;
+
+    private Integer mode;
+    private ServerFlowConfig flowConfig;
+    private ServerTransportConfig transportConfig;
+    private Set&lt;String&gt; namespaceSet;
+
+    @Override
+    public String getApp() {
+<span class="nc" id="L40">        return app;</span>
+    }
+
+    public ClusterServerModifyRequest setApp(String app) {
+<span class="nc" id="L44">        this.app = app;</span>
+<span class="nc" id="L45">        return this;</span>
+    }
+
+    @Override
+    public String getIp() {
+<span class="nc" id="L50">        return ip;</span>
+    }
+
+    public ClusterServerModifyRequest setIp(String ip) {
+<span class="nc" id="L54">        this.ip = ip;</span>
+<span class="nc" id="L55">        return this;</span>
+    }
+
+    @Override
+    public Integer getPort() {
+<span class="nc" id="L60">        return port;</span>
+    }
+
+    public ClusterServerModifyRequest setPort(Integer port) {
+<span class="nc" id="L64">        this.port = port;</span>
+<span class="nc" id="L65">        return this;</span>
+    }
+
+    @Override
+    public Integer getMode() {
+<span class="nc" id="L70">        return mode;</span>
+    }
+
+    public ClusterServerModifyRequest setMode(Integer mode) {
+<span class="nc" id="L74">        this.mode = mode;</span>
+<span class="nc" id="L75">        return this;</span>
+    }
+
+    public ServerFlowConfig getFlowConfig() {
+<span class="nc" id="L79">        return flowConfig;</span>
+    }
+
+    public ClusterServerModifyRequest setFlowConfig(
+        ServerFlowConfig flowConfig) {
+<span class="nc" id="L84">        this.flowConfig = flowConfig;</span>
+<span class="nc" id="L85">        return this;</span>
+    }
+
+    public ServerTransportConfig getTransportConfig() {
+<span class="nc" id="L89">        return transportConfig;</span>
+    }
+
+    public ClusterServerModifyRequest setTransportConfig(
+        ServerTransportConfig transportConfig) {
+<span class="nc" id="L94">        this.transportConfig = transportConfig;</span>
+<span class="nc" id="L95">        return this;</span>
+    }
+
+    public Set&lt;String&gt; getNamespaceSet() {
+<span class="nc" id="L99">        return namespaceSet;</span>
+    }
+
+    public ClusterServerModifyRequest setNamespaceSet(Set&lt;String&gt; namespaceSet) {
+<span class="nc" id="L103">        this.namespaceSet = namespaceSet;</span>
+<span class="nc" id="L104">        return this;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L109">        return &quot;ClusterServerModifyRequest{&quot; +</span>
+            &quot;app='&quot; + app + '\'' +
+            &quot;, ip='&quot; + ip + '\'' +
+            &quot;, port=&quot; + port +
+            &quot;, mode=&quot; + mode +
+            &quot;, flowConfig=&quot; + flowConfig +
+            &quot;, transportConfig=&quot; + transportConfig +
+            &quot;, namespaceSet=&quot; + namespaceSet +
+            '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

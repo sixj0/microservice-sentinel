@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceVo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.vo</a> &gt; <span class="el_source">ResourceVo.java</span></div><h1>ResourceVo.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.vo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.alibaba.csp.sentinel.command.vo.NodeVo;
+
+import com.alibaba.csp.sentinel.dashboard.domain.ResourceTreeNode;
+
+/**
+ * @author leyou
+ */
+public class ResourceVo {
+    private String parentTtId;
+    private String ttId;
+    private String resource;
+
+    private Integer threadNum;
+    private Long passQps;
+    private Long blockQps;
+    private Long totalQps;
+    private Long averageRt;
+    private Long passRequestQps;
+    private Long exceptionQps;
+    private Long oneMinutePass;
+    private Long oneMinuteBlock;
+    private Long oneMinuteException;
+    private Long oneMinuteTotal;
+
+<span class="nc" id="L45">    private boolean visible = true;</span>
+
+<span class="nc" id="L47">    public ResourceVo() {</span>
+<span class="nc" id="L48">    }</span>
+
+    public static List&lt;ResourceVo&gt; fromNodeVoList(List&lt;NodeVo&gt; nodeVos) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (nodeVos == null) {</span>
+<span class="nc" id="L52">            return null;</span>
+        }
+<span class="nc" id="L54">        List&lt;ResourceVo&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        for (NodeVo nodeVo : nodeVos) {</span>
+<span class="nc" id="L56">            ResourceVo vo = new ResourceVo();</span>
+<span class="nc" id="L57">            vo.parentTtId = nodeVo.getParentId();</span>
+<span class="nc" id="L58">            vo.ttId = nodeVo.getId();</span>
+<span class="nc" id="L59">            vo.resource = nodeVo.getResource();</span>
+<span class="nc" id="L60">            vo.threadNum = nodeVo.getThreadNum();</span>
+<span class="nc" id="L61">            vo.passQps = nodeVo.getPassQps();</span>
+<span class="nc" id="L62">            vo.blockQps = nodeVo.getBlockQps();</span>
+<span class="nc" id="L63">            vo.totalQps = nodeVo.getTotalQps();</span>
+<span class="nc" id="L64">            vo.averageRt = nodeVo.getAverageRt();</span>
+<span class="nc" id="L65">            vo.exceptionQps = nodeVo.getExceptionQps();</span>
+<span class="nc" id="L66">            vo.oneMinutePass = nodeVo.getOneMinutePass();</span>
+<span class="nc" id="L67">            vo.oneMinuteBlock = nodeVo.getOneMinuteBlock();</span>
+<span class="nc" id="L68">            vo.oneMinuteException = nodeVo.getOneMinuteException();</span>
+<span class="nc" id="L69">            vo.oneMinuteTotal = nodeVo.getOneMinuteTotal();</span>
+<span class="nc" id="L70">            list.add(vo);</span>
+<span class="nc" id="L71">        }</span>
+<span class="nc" id="L72">        return list;</span>
+    }
+
+    public static List&lt;ResourceVo&gt; fromResourceTreeNode(ResourceTreeNode root) {
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (root == null) {</span>
+<span class="nc" id="L77">            return null;</span>
+        }
+<span class="nc" id="L79">        List&lt;ResourceVo&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L80">        visit(root, list, false, true);</span>
+        //if(!list.isEmpty()){
+        //    list.remove(0);
+        //}
+<span class="nc" id="L84">        return list;</span>
+    }
+
+    /**
+     * This node is visible when this.visible==true or one of this's parents is visible,
+     * root node is always invisible.
+     */
+    private static void visit(ResourceTreeNode node, List&lt;ResourceVo&gt; list, boolean parentVisible, boolean isRoot) {
+<span class="nc bnc" id="L92" title="All 6 branches missed.">        boolean visible = !isRoot &amp;&amp; (node.isVisible() || parentVisible);</span>
+        //boolean visible = node.isVisible();
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (visible) {</span>
+<span class="nc" id="L95">            ResourceVo vo = new ResourceVo();</span>
+<span class="nc" id="L96">            vo.parentTtId = node.getParentId();</span>
+<span class="nc" id="L97">            vo.ttId = node.getId();</span>
+<span class="nc" id="L98">            vo.resource = node.getResource();</span>
+<span class="nc" id="L99">            vo.threadNum = node.getThreadNum();</span>
+<span class="nc" id="L100">            vo.passQps = node.getPassQps();</span>
+<span class="nc" id="L101">            vo.blockQps = node.getBlockQps();</span>
+<span class="nc" id="L102">            vo.totalQps = node.getTotalQps();</span>
+<span class="nc" id="L103">            vo.averageRt = node.getAverageRt();</span>
+<span class="nc" id="L104">            vo.exceptionQps = node.getExceptionQps();</span>
+<span class="nc" id="L105">            vo.oneMinutePass = node.getOneMinutePass();</span>
+<span class="nc" id="L106">            vo.oneMinuteBlock = node.getOneMinuteBlock();</span>
+<span class="nc" id="L107">            vo.oneMinuteException = node.getOneMinuteException();</span>
+<span class="nc" id="L108">            vo.oneMinuteTotal = node.getOneMinuteTotal();</span>
+<span class="nc" id="L109">            vo.visible = node.isVisible();</span>
+<span class="nc" id="L110">            list.add(vo);</span>
+        }
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        for (ResourceTreeNode c : node.getChildren()) {</span>
+<span class="nc" id="L113">            visit(c, list, visible, false);</span>
+<span class="nc" id="L114">        }</span>
+<span class="nc" id="L115">    }</span>
+
+    public String getParentTtId() {
+<span class="nc" id="L118">        return parentTtId;</span>
+    }
+
+    public void setParentTtId(String parentTtId) {
+<span class="nc" id="L122">        this.parentTtId = parentTtId;</span>
+<span class="nc" id="L123">    }</span>
+
+    public String getTtId() {
+<span class="nc" id="L126">        return ttId;</span>
+    }
+
+    public void setTtId(String ttId) {
+<span class="nc" id="L130">        this.ttId = ttId;</span>
+<span class="nc" id="L131">    }</span>
+
+    public String getResource() {
+<span class="nc" id="L134">        return resource;</span>
+    }
+
+    public void setResource(String resource) {
+<span class="nc" id="L138">        this.resource = resource;</span>
+<span class="nc" id="L139">    }</span>
+
+    public Integer getThreadNum() {
+<span class="nc" id="L142">        return threadNum;</span>
+    }
+
+    public void setThreadNum(Integer threadNum) {
+<span class="nc" id="L146">        this.threadNum = threadNum;</span>
+<span class="nc" id="L147">    }</span>
+
+    public Long getPassQps() {
+<span class="nc" id="L150">        return passQps;</span>
+    }
+
+    public void setPassQps(Long passQps) {
+<span class="nc" id="L154">        this.passQps = passQps;</span>
+<span class="nc" id="L155">    }</span>
+
+    public Long getBlockQps() {
+<span class="nc" id="L158">        return blockQps;</span>
+    }
+
+    public void setBlockQps(Long blockQps) {
+<span class="nc" id="L162">        this.blockQps = blockQps;</span>
+<span class="nc" id="L163">    }</span>
+
+    public Long getTotalQps() {
+<span class="nc" id="L166">        return totalQps;</span>
+    }
+
+    public void setTotalQps(Long totalQps) {
+<span class="nc" id="L170">        this.totalQps = totalQps;</span>
+<span class="nc" id="L171">    }</span>
+
+    public Long getAverageRt() {
+<span class="nc" id="L174">        return averageRt;</span>
+    }
+
+    public void setAverageRt(Long averageRt) {
+<span class="nc" id="L178">        this.averageRt = averageRt;</span>
+<span class="nc" id="L179">    }</span>
+
+    public Long getPassRequestQps() {
+<span class="nc" id="L182">        return passRequestQps;</span>
+    }
+
+    public void setPassRequestQps(Long passRequestQps) {
+<span class="nc" id="L186">        this.passRequestQps = passRequestQps;</span>
+<span class="nc" id="L187">    }</span>
+
+    public Long getExceptionQps() {
+<span class="nc" id="L190">        return exceptionQps;</span>
+    }
+
+    public void setExceptionQps(Long exceptionQps) {
+<span class="nc" id="L194">        this.exceptionQps = exceptionQps;</span>
+<span class="nc" id="L195">    }</span>
+
+    public Long getOneMinuteException() {
+<span class="nc" id="L198">        return oneMinuteException;</span>
+    }
+
+    public void setOneMinuteException(Long oneMinuteException) {
+<span class="nc" id="L202">        this.oneMinuteException = oneMinuteException;</span>
+<span class="nc" id="L203">    }</span>
+
+    public Long getOneMinutePass() {
+<span class="nc" id="L206">        return oneMinutePass;</span>
+    }
+
+    public void setOneMinutePass(Long oneMinutePass) {
+<span class="nc" id="L210">        this.oneMinutePass = oneMinutePass;</span>
+<span class="nc" id="L211">    }</span>
+
+    public Long getOneMinuteBlock() {
+<span class="nc" id="L214">        return oneMinuteBlock;</span>
+    }
+
+    public void setOneMinuteBlock(Long oneMinuteBlock) {
+<span class="nc" id="L218">        this.oneMinuteBlock = oneMinuteBlock;</span>
+<span class="nc" id="L219">    }</span>
+
+    public Long getOneMinuteTotal() {
+<span class="nc" id="L222">        return oneMinuteTotal;</span>
+    }
+
+    public void setOneMinuteTotal(Long oneMinuteTotal) {
+<span class="nc" id="L226">        this.oneMinuteTotal = oneMinuteTotal;</span>
+<span class="nc" id="L227">    }</span>
+
+    public boolean isVisible() {
+<span class="nc" id="L230">        return visible;</span>
+    }
+
+    public void setVisible(boolean visible) {
+<span class="nc" id="L234">        this.visible = visible;</span>
+<span class="nc" id="L235">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

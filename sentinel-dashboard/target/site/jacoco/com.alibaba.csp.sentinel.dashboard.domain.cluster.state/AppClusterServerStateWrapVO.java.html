@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppClusterServerStateWrapVO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.cluster.state</a> &gt; <span class="el_source">AppClusterServerStateWrapVO.java</span></div><h1>AppClusterServerStateWrapVO.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.cluster.state;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.1
+ */
+<span class="nc" id="L22">public class AppClusterServerStateWrapVO {</span>
+
+    /**
+     * {ip}@{transport_command_port}.
+     */
+    private String id;
+
+    private String ip;
+    private Integer port;
+
+    private Integer connectedCount;
+
+    private Boolean belongToApp;
+
+    private ClusterServerStateVO state;
+
+    public String getId() {
+<span class="nc" id="L39">        return id;</span>
+    }
+
+    public AppClusterServerStateWrapVO setId(String id) {
+<span class="nc" id="L43">        this.id = id;</span>
+<span class="nc" id="L44">        return this;</span>
+    }
+
+    public String getIp() {
+<span class="nc" id="L48">        return ip;</span>
+    }
+
+    public AppClusterServerStateWrapVO setIp(String ip) {
+<span class="nc" id="L52">        this.ip = ip;</span>
+<span class="nc" id="L53">        return this;</span>
+    }
+
+    public Integer getPort() {
+<span class="nc" id="L57">        return port;</span>
+    }
+
+    public AppClusterServerStateWrapVO setPort(Integer port) {
+<span class="nc" id="L61">        this.port = port;</span>
+<span class="nc" id="L62">        return this;</span>
+    }
+
+    public Boolean getBelongToApp() {
+<span class="nc" id="L66">        return belongToApp;</span>
+    }
+
+    public AppClusterServerStateWrapVO setBelongToApp(Boolean belongToApp) {
+<span class="nc" id="L70">        this.belongToApp = belongToApp;</span>
+<span class="nc" id="L71">        return this;</span>
+    }
+
+    public Integer getConnectedCount() {
+<span class="nc" id="L75">        return connectedCount;</span>
+    }
+
+    public AppClusterServerStateWrapVO setConnectedCount(Integer connectedCount) {
+<span class="nc" id="L79">        this.connectedCount = connectedCount;</span>
+<span class="nc" id="L80">        return this;</span>
+    }
+
+    public ClusterServerStateVO getState() {
+<span class="nc" id="L84">        return state;</span>
+    }
+
+    public AppClusterServerStateWrapVO setState(ClusterServerStateVO state) {
+<span class="nc" id="L88">        this.state = state;</span>
+<span class="nc" id="L89">        return this;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L94">        return &quot;AppClusterServerStateWrapVO{&quot; +</span>
+            &quot;id='&quot; + id + '\'' +
+            &quot;, ip='&quot; + ip + '\'' +
+            &quot;, port='&quot; + port + '\'' +
+            &quot;, belongToApp=&quot; + belongToApp +
+            &quot;, state=&quot; + state +
+            '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

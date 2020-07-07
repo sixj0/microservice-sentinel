@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.filter</a> &gt; <span class="el_source">AuthFilter.java</span></div><h1>AuthFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.filter;
+
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+
+/**
+ * Servlet Filter that authenticate requests.
+ *
+ * Note:
+ * Some urls are excluded as they needn't auth, such as:
+ *
+ * Index url: /
+ * Authentication request url: /login,logout
+ * Used for client: /registry/machine
+ * Static resources: htm,html,js and so on.
+ *
+ * The excluded urls and urlSuffixes are configured in application.properties
+ *
+ * @author cdfive
+ * @since 1.6.0
+ */
+@Component
+<span class="nc" id="L53">public class AuthFilter implements Filter {</span>
+
+    private static final String URL_SUFFIX_DOT = &quot;.&quot;;
+
+    /**Some urls which needn't auth, such as /auth/login,/registry/machine and so on*/
+    @Value(&quot;#{'${auth.filter.exclude-urls}'.split(',')}&quot;)
+    private List&lt;String&gt; authFilterExcludeUrls;
+
+    /**Some urls with suffixes which needn't auth, such as htm,html,js and so on*/
+    @Value(&quot;#{'${auth.filter.exclude-url-suffixes}'.split(',')}&quot;)
+    private List&lt;String&gt; authFilterExcludeUrlSuffixes;
+
+    /**Authentication using AuthService interface*/
+    @Autowired
+    private AuthService&lt;HttpServletRequest&gt; authService;
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+
+<span class="nc" id="L72">    }</span>
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+<span class="nc" id="L76">        HttpServletRequest httpRequest = (HttpServletRequest) request;</span>
+
+<span class="nc" id="L78">        String requestURI = httpRequest.getRequestURI();</span>
+
+        // Exclude the urls which needn't auth
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (authFilterExcludeUrls.contains(requestURI)) {</span>
+<span class="nc" id="L82">            chain.doFilter(request, response);</span>
+<span class="nc" id="L83">            return;</span>
+        }
+
+        // Exclude the urls with suffixes which needn't auth
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        for (String authFilterExcludeUrlSuffix : authFilterExcludeUrlSuffixes) {</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if (StringUtils.isBlank(authFilterExcludeUrlSuffix)) {</span>
+<span class="nc" id="L89">                continue;</span>
+            }
+
+            // Add . for url suffix so that we needn't add . in property file
+<span class="nc bnc" id="L93" title="All 2 branches missed.">            if (!authFilterExcludeUrlSuffix.startsWith(URL_SUFFIX_DOT)) {</span>
+<span class="nc" id="L94">                authFilterExcludeUrlSuffix = URL_SUFFIX_DOT + authFilterExcludeUrlSuffix;</span>
+            }
+
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (requestURI.endsWith(authFilterExcludeUrlSuffix)) {</span>
+<span class="nc" id="L98">                chain.doFilter(request, response);</span>
+<span class="nc" id="L99">                return;</span>
+            }
+<span class="nc" id="L101">        }</span>
+
+<span class="nc" id="L103">        AuthService.AuthUser authUser = authService.getAuthUser(httpRequest);</span>
+
+<span class="nc" id="L105">        HttpServletResponse httpResponse = (HttpServletResponse) response;</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (authUser == null) {</span>
+            // If auth fail, set response status code to 401
+<span class="nc" id="L108">            httpResponse.setStatus(HttpStatus.UNAUTHORIZED.value());</span>
+        } else {
+<span class="nc" id="L110">            chain.doFilter(request, response);</span>
+        }
+<span class="nc" id="L112">    }</span>
+
+    @Override
+    public void destroy() {
+
+<span class="nc" id="L117">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

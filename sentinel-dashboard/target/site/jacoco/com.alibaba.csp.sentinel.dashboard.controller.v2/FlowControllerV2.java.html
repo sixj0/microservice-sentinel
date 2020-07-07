@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FlowControllerV2.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.controller.v2</a> &gt; <span class="el_source">FlowControllerV2.java</span></div><h1>FlowControllerV2.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller.v2;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService.AuthUser;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService.PrivilegeType;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity;
+import com.alibaba.csp.sentinel.dashboard.repository.rule.InMemoryRuleRepositoryAdapter;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRuleProvider;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRulePublisher;
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Flow rule controller (v2).
+ *
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@RestController
+@RequestMapping(value = &quot;/v2/flow&quot;)
+<span class="nc" id="L56">public class FlowControllerV2 {</span>
+
+<span class="nc" id="L58">    private final Logger logger = LoggerFactory.getLogger(FlowControllerV2.class);</span>
+
+    @Autowired
+    private InMemoryRuleRepositoryAdapter&lt;FlowRuleEntity&gt; repository;
+
+    @Autowired
+    @Qualifier(&quot;flowRuleNacosProvider&quot;)
+    private DynamicRuleProvider&lt;List&lt;FlowRuleEntity&gt;&gt; ruleProvider;
+    @Autowired
+    @Qualifier(&quot;flowRuleNacosPublisher&quot;)
+    private DynamicRulePublisher&lt;List&lt;FlowRuleEntity&gt;&gt; rulePublisher;
+
+    @Autowired
+    private AuthService&lt;HttpServletRequest&gt; authService;
+
+    @GetMapping(&quot;/rules&quot;)
+    public Result&lt;List&lt;FlowRuleEntity&gt;&gt; apiQueryMachineRules(HttpServletRequest request, @RequestParam String app) {
+<span class="nc" id="L75">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc" id="L76">        authUser.authTarget(app, PrivilegeType.READ_RULE);</span>
+
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L79">            return Result.ofFail(-1, &quot;app can't be null or empty&quot;);</span>
+        }
+        try {
+<span class="nc" id="L82">            List&lt;FlowRuleEntity&gt; rules = ruleProvider.getRules(app);</span>
+<span class="nc bnc" id="L83" title="All 4 branches missed.">            if (rules != null &amp;&amp; !rules.isEmpty()) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                for (FlowRuleEntity entity : rules) {</span>
+<span class="nc" id="L85">                    entity.setApp(app);</span>
+<span class="nc bnc" id="L86" title="All 4 branches missed.">                    if (entity.getClusterConfig() != null &amp;&amp; entity.getClusterConfig().getFlowId() != null) {</span>
+<span class="nc" id="L87">                        entity.setId(entity.getClusterConfig().getFlowId());</span>
+                    }
+<span class="nc" id="L89">                }</span>
+            }
+<span class="nc" id="L91">            rules = repository.saveAll(rules);</span>
+<span class="nc" id="L92">            return Result.ofSuccess(rules);</span>
+<span class="nc" id="L93">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L94">            logger.error(&quot;Error when querying flow rules&quot;, throwable);</span>
+<span class="nc" id="L95">            return Result.ofThrowable(-1, throwable);</span>
+        }
+    }
+
+    private &lt;R&gt; Result&lt;R&gt; checkEntityInternal(FlowRuleEntity entity) {
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if (entity == null) {</span>
+<span class="nc" id="L101">            return Result.ofFail(-1, &quot;invalid body&quot;);</span>
+        }
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        if (StringUtil.isBlank(entity.getApp())) {</span>
+<span class="nc" id="L104">            return Result.ofFail(-1, &quot;app can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (StringUtil.isBlank(entity.getLimitApp())) {</span>
+<span class="nc" id="L107">            return Result.ofFail(-1, &quot;limitApp can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (StringUtil.isBlank(entity.getResource())) {</span>
+<span class="nc" id="L110">            return Result.ofFail(-1, &quot;resource can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (entity.getGrade() == null) {</span>
+<span class="nc" id="L113">            return Result.ofFail(-1, &quot;grade can't be null&quot;);</span>
+        }
+<span class="nc bnc" id="L115" title="All 4 branches missed.">        if (entity.getGrade() != 0 &amp;&amp; entity.getGrade() != 1) {</span>
+<span class="nc" id="L116">            return Result.ofFail(-1, &quot;grade must be 0 or 1, but &quot; + entity.getGrade() + &quot; got&quot;);</span>
+        }
+<span class="nc bnc" id="L118" title="All 4 branches missed.">        if (entity.getCount() == null || entity.getCount() &lt; 0) {</span>
+<span class="nc" id="L119">            return Result.ofFail(-1, &quot;count should be at lease zero&quot;);</span>
+        }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (entity.getStrategy() == null) {</span>
+<span class="nc" id="L122">            return Result.ofFail(-1, &quot;strategy can't be null&quot;);</span>
+        }
+<span class="nc bnc" id="L124" title="All 4 branches missed.">        if (entity.getStrategy() != 0 &amp;&amp; StringUtil.isBlank(entity.getRefResource())) {</span>
+<span class="nc" id="L125">            return Result.ofFail(-1, &quot;refResource can't be null or empty when strategy!=0&quot;);</span>
+        }
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (entity.getControlBehavior() == null) {</span>
+<span class="nc" id="L128">            return Result.ofFail(-1, &quot;controlBehavior can't be null&quot;);</span>
+        }
+<span class="nc" id="L130">        int controlBehavior = entity.getControlBehavior();</span>
+<span class="nc bnc" id="L131" title="All 4 branches missed.">        if (controlBehavior == 1 &amp;&amp; entity.getWarmUpPeriodSec() == null) {</span>
+<span class="nc" id="L132">            return Result.ofFail(-1, &quot;warmUpPeriodSec can't be null when controlBehavior==1&quot;);</span>
+        }
+<span class="nc bnc" id="L134" title="All 4 branches missed.">        if (controlBehavior == 2 &amp;&amp; entity.getMaxQueueingTimeMs() == null) {</span>
+<span class="nc" id="L135">            return Result.ofFail(-1, &quot;maxQueueingTimeMs can't be null when controlBehavior==2&quot;);</span>
+        }
+<span class="nc bnc" id="L137" title="All 4 branches missed.">        if (entity.isClusterMode() &amp;&amp; entity.getClusterConfig() == null) {</span>
+<span class="nc" id="L138">            return Result.ofFail(-1, &quot;cluster config should be valid&quot;);</span>
+        }
+<span class="nc" id="L140">        return null;</span>
+    }
+
+    @PostMapping(&quot;/rule&quot;)
+    public Result&lt;FlowRuleEntity&gt; apiAddFlowRule(HttpServletRequest request, @RequestBody FlowRuleEntity entity) {
+<span class="nc" id="L145">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc" id="L146">        authUser.authTarget(entity.getApp(), PrivilegeType.WRITE_RULE);</span>
+
+<span class="nc" id="L148">        Result&lt;FlowRuleEntity&gt; checkResult = checkEntityInternal(entity);</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (checkResult != null) {</span>
+<span class="nc" id="L150">            return checkResult;</span>
+        }
+<span class="nc" id="L152">        entity.setId(null);</span>
+<span class="nc" id="L153">        Date date = new Date();</span>
+<span class="nc" id="L154">        entity.setGmtCreate(date);</span>
+<span class="nc" id="L155">        entity.setGmtModified(date);</span>
+<span class="nc" id="L156">        entity.setLimitApp(entity.getLimitApp().trim());</span>
+<span class="nc" id="L157">        entity.setResource(entity.getResource().trim());</span>
+        try {
+<span class="nc" id="L159">            entity = repository.save(entity);</span>
+<span class="nc" id="L160">            publishRules(entity.getApp());</span>
+<span class="nc" id="L161">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L162">            logger.error(&quot;Failed to add flow rule&quot;, throwable);</span>
+<span class="nc" id="L163">            return Result.ofThrowable(-1, throwable);</span>
+<span class="nc" id="L164">        }</span>
+<span class="nc" id="L165">        return Result.ofSuccess(entity);</span>
+    }
+
+    @PutMapping(&quot;/rule/{id}&quot;)
+    public Result&lt;FlowRuleEntity&gt; apiUpdateFlowRule(HttpServletRequest request,
+                                                    @PathVariable(&quot;id&quot;) Long id,
+                                                    @RequestBody FlowRuleEntity entity) {
+<span class="nc" id="L172">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc bnc" id="L173" title="All 4 branches missed.">        if (id == null || id &lt;= 0) {</span>
+<span class="nc" id="L174">            return Result.ofFail(-1, &quot;Invalid id&quot;);</span>
+        }
+<span class="nc" id="L176">        FlowRuleEntity oldEntity = repository.findById(id);</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (oldEntity == null) {</span>
+<span class="nc" id="L178">            return Result.ofFail(-1, &quot;id &quot; + id + &quot; does not exist&quot;);</span>
+        }
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (entity == null) {</span>
+<span class="nc" id="L181">            return Result.ofFail(-1, &quot;invalid body&quot;);</span>
+        }
+<span class="nc" id="L183">        authUser.authTarget(oldEntity.getApp(), PrivilegeType.WRITE_RULE);</span>
+
+<span class="nc" id="L185">        entity.setApp(oldEntity.getApp());</span>
+<span class="nc" id="L186">        entity.setIp(oldEntity.getIp());</span>
+<span class="nc" id="L187">        entity.setPort(oldEntity.getPort());</span>
+<span class="nc" id="L188">        Result&lt;FlowRuleEntity&gt; checkResult = checkEntityInternal(entity);</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        if (checkResult != null) {</span>
+<span class="nc" id="L190">            return checkResult;</span>
+        }
+
+<span class="nc" id="L193">        entity.setId(id);</span>
+<span class="nc" id="L194">        Date date = new Date();</span>
+<span class="nc" id="L195">        entity.setGmtCreate(oldEntity.getGmtCreate());</span>
+<span class="nc" id="L196">        entity.setGmtModified(date);</span>
+        try {
+<span class="nc" id="L198">            entity = repository.save(entity);</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">            if (entity == null) {</span>
+<span class="nc" id="L200">                return Result.ofFail(-1, &quot;save entity fail&quot;);</span>
+            }
+<span class="nc" id="L202">            publishRules(oldEntity.getApp());</span>
+<span class="nc" id="L203">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L204">            logger.error(&quot;Failed to update flow rule&quot;, throwable);</span>
+<span class="nc" id="L205">            return Result.ofThrowable(-1, throwable);</span>
+<span class="nc" id="L206">        }</span>
+<span class="nc" id="L207">        return Result.ofSuccess(entity);</span>
+    }
+
+    @DeleteMapping(&quot;/rule/{id}&quot;)
+    public Result&lt;Long&gt; apiDeleteRule(HttpServletRequest request, @PathVariable(&quot;id&quot;) Long id) {
+<span class="nc" id="L212">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc bnc" id="L213" title="All 4 branches missed.">        if (id == null || id &lt;= 0) {</span>
+<span class="nc" id="L214">            return Result.ofFail(-1, &quot;Invalid id&quot;);</span>
+        }
+<span class="nc" id="L216">        FlowRuleEntity oldEntity = repository.findById(id);</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        if (oldEntity == null) {</span>
+<span class="nc" id="L218">            return Result.ofSuccess(null);</span>
+        }
+<span class="nc" id="L220">        authUser.authTarget(oldEntity.getApp(), PrivilegeType.DELETE_RULE);</span>
+        try {
+<span class="nc" id="L222">            repository.delete(id);</span>
+<span class="nc" id="L223">            publishRules(oldEntity.getApp());</span>
+<span class="nc" id="L224">        } catch (Exception e) {</span>
+<span class="nc" id="L225">            return Result.ofFail(-1, e.getMessage());</span>
+<span class="nc" id="L226">        }</span>
+<span class="nc" id="L227">        return Result.ofSuccess(id);</span>
+    }
+
+    private void publishRules(/*@NonNull*/ String app) throws Exception {
+<span class="nc" id="L231">        List&lt;FlowRuleEntity&gt; rules = repository.findAllByApp(app);</span>
+<span class="nc" id="L232">        rulePublisher.publish(app, rules);</span>
+<span class="nc" id="L233">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

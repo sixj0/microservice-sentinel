@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.controller</a> &gt; <span class="el_source">AppController.java</span></div><h1>AppController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import com.alibaba.csp.sentinel.dashboard.discovery.AppInfo;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
+import com.alibaba.csp.sentinel.dashboard.discovery.MachineInfo;
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+import com.alibaba.csp.sentinel.dashboard.domain.vo.MachineInfoVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @author Carpenter Lee
+ */
+@RestController
+@RequestMapping(value = &quot;/app&quot;)
+<span class="nc" id="L42">public class AppController {</span>
+
+    @Autowired
+    private AppManagement appManagement;
+
+    @GetMapping(&quot;/names.json&quot;)
+    public Result&lt;List&lt;String&gt;&gt; queryApps(HttpServletRequest request) {
+<span class="nc" id="L49">        return Result.ofSuccess(appManagement.getAppNames());</span>
+    }
+
+    @GetMapping(&quot;/briefinfos.json&quot;)
+    public Result&lt;List&lt;AppInfo&gt;&gt; queryAppInfos(HttpServletRequest request) {
+<span class="nc" id="L54">        List&lt;AppInfo&gt; list = new ArrayList&lt;&gt;(appManagement.getBriefApps());</span>
+<span class="nc" id="L55">        Collections.sort(list, Comparator.comparing(AppInfo::getApp));</span>
+<span class="nc" id="L56">        return Result.ofSuccess(list);</span>
+    }
+
+    @GetMapping(value = &quot;/{app}/machines.json&quot;)
+    public Result&lt;List&lt;MachineInfoVo&gt;&gt; getMachinesByApp(@PathVariable(&quot;app&quot;) String app) {
+<span class="nc" id="L61">        AppInfo appInfo = appManagement.getDetailApp(app);</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (appInfo == null) {</span>
+<span class="nc" id="L63">            return Result.ofSuccess(null);</span>
+        }
+<span class="nc" id="L65">        List&lt;MachineInfo&gt; list = new ArrayList&lt;&gt;(appInfo.getMachines());</span>
+<span class="nc" id="L66">        Collections.sort(list, (o1, o2) -&gt; {</span>
+<span class="nc" id="L67">            int t = o1.getApp().compareTo(o2.getApp());</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (t != 0) {</span>
+<span class="nc" id="L69">                return t;</span>
+            }
+<span class="nc" id="L71">            t = o1.getIp().compareTo(o2.getIp());</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            if (t != 0) {</span>
+<span class="nc" id="L73">                return t;</span>
+            }
+<span class="nc" id="L75">            return o1.getPort().compareTo(o2.getPort());</span>
+        });
+<span class="nc" id="L77">        return Result.ofSuccess(MachineInfoVo.fromMachineInfoList(list));</span>
+    }
+    
+    @RequestMapping(value = &quot;/{app}/machine/remove.json&quot;)
+    public Result&lt;String&gt; removeMachineById(
+            @PathVariable(&quot;app&quot;) String app,
+            @RequestParam(name = &quot;ip&quot;) String ip,
+            @RequestParam(name = &quot;port&quot;) int port) {
+<span class="nc" id="L85">        AppInfo appInfo = appManagement.getDetailApp(app);</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (appInfo == null) {</span>
+<span class="nc" id="L87">            return Result.ofSuccess(null);</span>
+        }
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (appManagement.removeMachine(app, ip, port)) {</span>
+<span class="nc" id="L90">            return Result.ofSuccessMsg(&quot;success&quot;);</span>
+        } else {
+<span class="nc" id="L92">            return Result.ofFail(1, &quot;remove failed&quot;);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

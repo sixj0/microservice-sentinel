@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DegradeRuleEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.datasource.entity.rule</a> &gt; <span class="el_source">DegradeRuleEntity.java</span></div><h1>DegradeRuleEntity.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
+
+import java.util.Date;
+
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
+
+/**
+ * @author leyou
+ */
+<span class="nc" id="L25">public class DegradeRuleEntity implements RuleEntity {</span>
+    private Long id;
+    private String app;
+    private String ip;
+    private Integer port;
+    private String resource;
+    private String limitApp;
+    private Double count;
+    private Integer timeWindow;
+    /**
+     * 0 rt 限流; 1为异常;
+     */
+    private Integer grade;
+    private Date gmtCreate;
+    private Date gmtModified;
+
+    public static DegradeRuleEntity fromDegradeRule(String app, String ip, Integer port, DegradeRule rule) {
+<span class="nc" id="L42">        DegradeRuleEntity entity = new DegradeRuleEntity();</span>
+<span class="nc" id="L43">        entity.setApp(app);</span>
+<span class="nc" id="L44">        entity.setIp(ip);</span>
+<span class="nc" id="L45">        entity.setPort(port);</span>
+<span class="nc" id="L46">        entity.setResource(rule.getResource());</span>
+<span class="nc" id="L47">        entity.setLimitApp(rule.getLimitApp());</span>
+<span class="nc" id="L48">        entity.setCount(rule.getCount());</span>
+<span class="nc" id="L49">        entity.setTimeWindow(rule.getTimeWindow());</span>
+<span class="nc" id="L50">        entity.setGrade(rule.getGrade());</span>
+<span class="nc" id="L51">        return entity;</span>
+    }
+
+    @Override
+    public String getIp() {
+<span class="nc" id="L56">        return ip;</span>
+    }
+
+    public void setIp(String ip) {
+<span class="nc" id="L60">        this.ip = ip;</span>
+<span class="nc" id="L61">    }</span>
+
+    @Override
+    public Integer getPort() {
+<span class="nc" id="L65">        return port;</span>
+    }
+
+    public void setPort(Integer port) {
+<span class="nc" id="L69">        this.port = port;</span>
+<span class="nc" id="L70">    }</span>
+
+    @Override
+    public Long getId() {
+<span class="nc" id="L74">        return id;</span>
+    }
+
+    @Override
+    public void setId(Long id) {
+<span class="nc" id="L79">        this.id = id;</span>
+<span class="nc" id="L80">    }</span>
+
+    @Override
+    public String getApp() {
+<span class="nc" id="L84">        return app;</span>
+    }
+
+    public void setApp(String app) {
+<span class="nc" id="L88">        this.app = app;</span>
+<span class="nc" id="L89">    }</span>
+
+    public String getResource() {
+<span class="nc" id="L92">        return resource;</span>
+    }
+
+    public void setResource(String resource) {
+<span class="nc" id="L96">        this.resource = resource;</span>
+<span class="nc" id="L97">    }</span>
+
+    public String getLimitApp() {
+<span class="nc" id="L100">        return limitApp;</span>
+    }
+
+    public void setLimitApp(String limitApp) {
+<span class="nc" id="L104">        this.limitApp = limitApp;</span>
+<span class="nc" id="L105">    }</span>
+
+    public Double getCount() {
+<span class="nc" id="L108">        return count;</span>
+    }
+
+    public void setCount(Double count) {
+<span class="nc" id="L112">        this.count = count;</span>
+<span class="nc" id="L113">    }</span>
+
+    public Integer getTimeWindow() {
+<span class="nc" id="L116">        return timeWindow;</span>
+    }
+
+    public void setTimeWindow(Integer timeWindow) {
+<span class="nc" id="L120">        this.timeWindow = timeWindow;</span>
+<span class="nc" id="L121">    }</span>
+
+    public Integer getGrade() {
+<span class="nc" id="L124">        return grade;</span>
+    }
+
+    public void setGrade(Integer grade) {
+<span class="nc" id="L128">        this.grade = grade;</span>
+<span class="nc" id="L129">    }</span>
+
+    @Override
+    public Date getGmtCreate() {
+<span class="nc" id="L133">        return gmtCreate;</span>
+    }
+
+    public void setGmtCreate(Date gmtCreate) {
+<span class="nc" id="L137">        this.gmtCreate = gmtCreate;</span>
+<span class="nc" id="L138">    }</span>
+
+    public Date getGmtModified() {
+<span class="nc" id="L141">        return gmtModified;</span>
+    }
+
+    public void setGmtModified(Date gmtModified) {
+<span class="nc" id="L145">        this.gmtModified = gmtModified;</span>
+<span class="nc" id="L146">    }</span>
+
+    @Override
+    public DegradeRule toRule() {
+<span class="nc" id="L150">        DegradeRule rule = new DegradeRule();</span>
+<span class="nc" id="L151">        rule.setResource(resource);</span>
+<span class="nc" id="L152">        rule.setLimitApp(limitApp);</span>
+<span class="nc" id="L153">        rule.setCount(count);</span>
+<span class="nc" id="L154">        rule.setTimeWindow(timeWindow);</span>
+<span class="nc" id="L155">        rule.setGrade(grade);</span>
+<span class="nc" id="L156">        return rule;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

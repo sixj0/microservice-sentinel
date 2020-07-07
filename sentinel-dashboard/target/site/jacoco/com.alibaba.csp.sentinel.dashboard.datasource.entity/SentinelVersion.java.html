@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SentinelVersion.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.datasource.entity</a> &gt; <span class="el_source">SentinelVersion.java</span></div><h1>SentinelVersion.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.datasource.entity;
+
+/**
+ * @author Eric Zhao
+ * @since 0.2.1
+ */
+public class SentinelVersion {
+    private int majorVersion;
+    private int minorVersion;
+    private int fixVersion;
+    private String postfix;
+    
+    public SentinelVersion() {
+<span class="fc" id="L29">        this(0, 0, 0);</span>
+<span class="fc" id="L30">    }</span>
+    
+    public SentinelVersion(int major, int minor, int fix) {
+<span class="fc" id="L33">        this(major, minor, fix, null);</span>
+<span class="fc" id="L34">    }</span>
+    
+<span class="fc" id="L36">    public SentinelVersion(int major, int minor, int fix, String postfix) {</span>
+<span class="fc" id="L37">        this.majorVersion = major;</span>
+<span class="fc" id="L38">        this.minorVersion = minor;</span>
+<span class="fc" id="L39">        this.fixVersion = fix;</span>
+<span class="fc" id="L40">        this.postfix = postfix;</span>
+<span class="fc" id="L41">    }</span>
+    
+    /**
+     * 000, 000, 000
+     */
+    public int getFullVersion() {
+<span class="fc" id="L47">        return majorVersion * 1000000 + minorVersion * 1000 + fixVersion;</span>
+    }
+
+    public int getMajorVersion() {
+<span class="fc" id="L51">        return majorVersion;</span>
+    }
+
+    public SentinelVersion setMajorVersion(int majorVersion) {
+<span class="fc" id="L55">        this.majorVersion = majorVersion;</span>
+<span class="fc" id="L56">        return this;</span>
+    }
+
+    public int getMinorVersion() {
+<span class="fc" id="L60">        return minorVersion;</span>
+    }
+
+    public SentinelVersion setMinorVersion(int minorVersion) {
+<span class="fc" id="L64">        this.minorVersion = minorVersion;</span>
+<span class="fc" id="L65">        return this;</span>
+    }
+
+    public int getFixVersion() {
+<span class="fc" id="L69">        return fixVersion;</span>
+    }
+
+    public SentinelVersion setFixVersion(int fixVersion) {
+<span class="fc" id="L73">        this.fixVersion = fixVersion;</span>
+<span class="fc" id="L74">        return this;</span>
+    }
+
+    public String getPostfix() {
+<span class="fc" id="L78">        return postfix;</span>
+    }
+
+    public SentinelVersion setPostfix(String postfix) {
+<span class="fc" id="L82">        this.postfix = postfix;</span>
+<span class="fc" id="L83">        return this;</span>
+    }
+
+    public boolean greaterThan(SentinelVersion version) {
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        if (version == null) {</span>
+<span class="nc" id="L88">            return true;</span>
+        }
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        return getFullVersion() &gt; version.getFullVersion();</span>
+    }
+
+    public boolean greaterOrEqual(SentinelVersion version) {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (version == null) {</span>
+<span class="nc" id="L95">            return true;</span>
+        }
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        return getFullVersion() &gt;= version.getFullVersion();</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        if (this == o) { return true; }</span>
+<span class="pc bpc" id="L103" title="2 of 4 branches missed.">        if (o == null || getClass() != o.getClass()) { return false; }</span>
+
+<span class="fc" id="L105">        SentinelVersion that = (SentinelVersion)o;</span>
+
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (getFullVersion() != that.getFullVersion()) { return false; }</span>
+<span class="fc bfc" id="L108" title="All 4 branches covered.">        return postfix != null ? postfix.equals(that.postfix) : that.postfix == null;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L113">        int result = majorVersion;</span>
+<span class="nc" id="L114">        result = 31 * result + minorVersion;</span>
+<span class="nc" id="L115">        result = 31 * result + fixVersion;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        result = 31 * result + (postfix != null ? postfix.hashCode() : 0);</span>
+<span class="nc" id="L117">        return result;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L122">        return &quot;SentinelVersion{&quot; +</span>
+            &quot;majorVersion=&quot; + majorVersion +
+            &quot;, minorVersion=&quot; + minorVersion +
+            &quot;, fixVersion=&quot; + fixVersion +
+            &quot;, postfix='&quot; + postfix + '\'' +
+            '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

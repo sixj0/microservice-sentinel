@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterAppAssignMap.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain.cluster.request</a> &gt; <span class="el_source">ClusterAppAssignMap.java</span></div><h1>ClusterAppAssignMap.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain.cluster.request;
+
+import java.util.Set;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.1
+ */
+<span class="nc" id="L24">public class ClusterAppAssignMap {</span>
+
+    private String machineId;
+    private String ip;
+    private Integer port;
+
+    private Boolean belongToApp;
+
+    private Set&lt;String&gt; clientSet;
+
+    private Set&lt;String&gt; namespaceSet;
+    private Double maxAllowedQps;
+
+    public String getMachineId() {
+<span class="nc" id="L38">        return machineId;</span>
+    }
+
+    public ClusterAppAssignMap setMachineId(String machineId) {
+<span class="nc" id="L42">        this.machineId = machineId;</span>
+<span class="nc" id="L43">        return this;</span>
+    }
+
+    public String getIp() {
+<span class="nc" id="L47">        return ip;</span>
+    }
+
+    public ClusterAppAssignMap setIp(String ip) {
+<span class="nc" id="L51">        this.ip = ip;</span>
+<span class="nc" id="L52">        return this;</span>
+    }
+
+    public Integer getPort() {
+<span class="nc" id="L56">        return port;</span>
+    }
+
+    public ClusterAppAssignMap setPort(Integer port) {
+<span class="nc" id="L60">        this.port = port;</span>
+<span class="nc" id="L61">        return this;</span>
+    }
+
+    public Set&lt;String&gt; getClientSet() {
+<span class="nc" id="L65">        return clientSet;</span>
+    }
+
+    public ClusterAppAssignMap setClientSet(Set&lt;String&gt; clientSet) {
+<span class="nc" id="L69">        this.clientSet = clientSet;</span>
+<span class="nc" id="L70">        return this;</span>
+    }
+
+    public Set&lt;String&gt; getNamespaceSet() {
+<span class="nc" id="L74">        return namespaceSet;</span>
+    }
+
+    public ClusterAppAssignMap setNamespaceSet(Set&lt;String&gt; namespaceSet) {
+<span class="nc" id="L78">        this.namespaceSet = namespaceSet;</span>
+<span class="nc" id="L79">        return this;</span>
+    }
+
+    public Boolean getBelongToApp() {
+<span class="nc" id="L83">        return belongToApp;</span>
+    }
+
+    public ClusterAppAssignMap setBelongToApp(Boolean belongToApp) {
+<span class="nc" id="L87">        this.belongToApp = belongToApp;</span>
+<span class="nc" id="L88">        return this;</span>
+    }
+
+    public Double getMaxAllowedQps() {
+<span class="nc" id="L92">        return maxAllowedQps;</span>
+    }
+
+    public ClusterAppAssignMap setMaxAllowedQps(Double maxAllowedQps) {
+<span class="nc" id="L96">        this.maxAllowedQps = maxAllowedQps;</span>
+<span class="nc" id="L97">        return this;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L102">        return &quot;ClusterAppAssignMap{&quot; +</span>
+            &quot;machineId='&quot; + machineId + '\'' +
+            &quot;, ip='&quot; + ip + '\'' +
+            &quot;, port=&quot; + port +
+            &quot;, belongToApp=&quot; + belongToApp +
+            &quot;, clientSet=&quot; + clientSet +
+            &quot;, namespaceSet=&quot; + namespaceSet +
+            &quot;, maxAllowedQps=&quot; + maxAllowedQps +
+            '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

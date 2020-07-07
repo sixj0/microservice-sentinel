@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.auth</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.auth;
+
+/**
+ * Interface for authentication and authorization.
+ *
+ * @author Carpenter Lee
+ * @since 1.5.0
+ */
+public interface AuthService&lt;R&gt; {
+
+    /**
+     * Get the authentication user.
+     *
+     * @param request the request contains the user information
+     * @return the auth user represent the current user, when the user is illegal, a null value will return.
+     */
+    AuthUser getAuthUser(R request);
+
+    /**
+     * Privilege type.
+     */
+<span class="nc" id="L37">    enum PrivilegeType {</span>
+        /**
+         * Read rule
+         */
+<span class="nc" id="L41">        READ_RULE,</span>
+        /**
+         * Create or modify rule
+         */
+<span class="nc" id="L45">        WRITE_RULE,</span>
+        /**
+         * Delete rule
+         */
+<span class="nc" id="L49">        DELETE_RULE,</span>
+        /**
+         * Read metrics
+         */
+<span class="nc" id="L53">        READ_METRIC,</span>
+        /**
+         * Add machine
+         */
+<span class="nc" id="L57">        ADD_MACHINE,</span>
+        /**
+         * All privileges above are granted.
+         */
+<span class="nc" id="L61">        ALL</span>
+    }
+
+    /**
+     * Represents the current user.
+     */
+    interface AuthUser {
+
+        /**
+         * Query whether current user has the specific privilege to the target, the target
+         * may be an app name or an ip address, or other destination.
+         * &lt;p&gt;
+         * This method will use return value to represent  whether user has the specific
+         * privileges to the target, but to throw a RuntimeException to represent no auth
+         * is also a good way.
+         * &lt;/p&gt;
+         *
+         * @param target        the target to check
+         * @param privilegeType the privilege type to check
+         * @return if current user has the specific privileges to the target, return true,
+         * otherwise return false.
+         */
+        boolean authTarget(String target, PrivilegeType privilegeType);
+
+        /**
+         * Check whether current user is a super-user.
+         *
+         * @return if current user is super user return true, else return false.
+         */
+        boolean isSuperUser();
+
+        /**
+         * Get current user's nick name.
+         *
+         * @return current user's nick name.
+         */
+        String getNickName();
+
+        /**
+         * Get current user's login name.
+         *
+         * @return current user's login name.
+         */
+        String getLoginName();
+
+        /**
+         * Get current user's ID.
+         *
+         * @return ID of current user
+         */
+        String getId();
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

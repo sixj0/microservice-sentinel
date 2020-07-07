@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParamFlowRuleController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.controller</a> &gt; <span class="el_source">ParamFlowRuleController.java</span></div><h1>ParamFlowRuleController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import javax.servlet.http.HttpServletRequest;
+
+import com.alibaba.csp.sentinel.dashboard.client.CommandNotFoundException;
+import com.alibaba.csp.sentinel.dashboard.client.SentinelApiClient;
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.DegradeRuleEntity;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
+import com.alibaba.csp.sentinel.dashboard.discovery.MachineInfo;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService.AuthUser;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService.PrivilegeType;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRuleProvider;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRulePublisher;
+import com.alibaba.csp.sentinel.slots.block.RuleConstant;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.SentinelVersion;
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.ParamFlowRuleEntity;
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+import com.alibaba.csp.sentinel.dashboard.repository.rule.RuleRepository;
+import com.alibaba.csp.sentinel.dashboard.util.VersionUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @author Eric Zhao
+ * @since 0.2.1
+ */
+@RestController
+@RequestMapping(value = &quot;/paramFlow&quot;)
+<span class="nc" id="L65">public class ParamFlowRuleController {</span>
+
+<span class="nc" id="L67">    private final Logger logger = LoggerFactory.getLogger(ParamFlowRuleController.class);</span>
+
+    @Autowired
+    @Qualifier(&quot;paramFlowRuleNacosProvider&quot;)
+    private DynamicRuleProvider&lt;List&lt;ParamFlowRuleEntity&gt;&gt; ruleProvider;
+    @Autowired
+    @Qualifier(&quot;paramFlowRuleNacosPublisher&quot;)
+    private DynamicRulePublisher&lt;List&lt;ParamFlowRuleEntity&gt;&gt; rulePublisher;
+
+    @Autowired
+    private AppManagement appManagement;
+    @Autowired
+    private RuleRepository&lt;ParamFlowRuleEntity, Long&gt; repository;
+
+    @Autowired
+    private AuthService&lt;HttpServletRequest&gt; authService;
+
+    private boolean checkIfSupported(String app, String ip, int port) {
+        try {
+<span class="nc" id="L86">            return Optional.ofNullable(appManagement.getDetailApp(app))</span>
+<span class="nc" id="L87">                .flatMap(e -&gt; e.getMachine(ip, port))</span>
+<span class="nc" id="L88">                .flatMap(m -&gt; VersionUtils.parseVersion(m.getVersion())</span>
+<span class="nc" id="L89">                    .map(v -&gt; v.greaterOrEqual(version020)))</span>
+<span class="nc" id="L90">                .orElse(true);</span>
+            // If error occurred or cannot retrieve machine info, return true.
+<span class="nc" id="L92">        } catch (Exception ex) {</span>
+<span class="nc" id="L93">            return true;</span>
+        }
+    }
+
+    @GetMapping(&quot;/rules&quot;)
+    public Result&lt;List&lt;ParamFlowRuleEntity&gt;&gt; apiQueryAllRulesForMachine(HttpServletRequest request,
+                                                                        @RequestParam String app,
+                                                                        @RequestParam String ip,
+                                                                        @RequestParam Integer port) {
+<span class="nc" id="L102">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc" id="L103">        authUser.authTarget(app, PrivilegeType.READ_RULE);</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (StringUtil.isEmpty(app)) {</span>
+<span class="nc" id="L105">            return Result.ofFail(-1, &quot;app cannot be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (StringUtil.isEmpty(ip)) {</span>
+<span class="nc" id="L108">            return Result.ofFail(-1, &quot;ip cannot be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L110" title="All 4 branches missed.">        if (port == null || port &lt;= 0) {</span>
+<span class="nc" id="L111">            return Result.ofFail(-1, &quot;Invalid parameter: port&quot;);</span>
+        }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (!checkIfSupported(app, ip, port)) {</span>
+<span class="nc" id="L114">            return unsupportedVersion();</span>
+        }
+        try {
+<span class="nc" id="L117">            List&lt;ParamFlowRuleEntity&gt; rules = ruleProvider.getRules(app);</span>
+<span class="nc" id="L118">            rules = repository.saveAll(rules);</span>
+<span class="nc" id="L119">            return Result.ofSuccess(rules);</span>
+<span class="nc" id="L120">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L121">            logger.error(&quot;Error when querying parameter flow rules&quot;, ex.getCause());</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            if (isNotSupported(ex.getCause())) {</span>
+<span class="nc" id="L123">                return unsupportedVersion();</span>
+            } else {
+<span class="nc" id="L125">                return Result.ofThrowable(-1, ex.getCause());</span>
+            }
+<span class="nc" id="L127">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L128">            logger.error(&quot;Error when querying parameter flow rules&quot;, throwable);</span>
+<span class="nc" id="L129">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    private boolean isNotSupported(Throwable ex) {
+<span class="nc" id="L134">        return ex instanceof CommandNotFoundException;</span>
+    }
+
+    @PostMapping(&quot;/rule&quot;)
+    public Result&lt;ParamFlowRuleEntity&gt; apiAddParamFlowRule(HttpServletRequest request,
+                                                           @RequestBody ParamFlowRuleEntity entity) {
+<span class="nc" id="L140">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc" id="L141">        authUser.authTarget(entity.getApp(), PrivilegeType.WRITE_RULE);</span>
+<span class="nc" id="L142">        Result&lt;ParamFlowRuleEntity&gt; checkResult = checkEntityInternal(entity);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        if (checkResult != null) {</span>
+<span class="nc" id="L144">            return checkResult;</span>
+        }
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (!checkIfSupported(entity.getApp(), entity.getIp(), entity.getPort())) {</span>
+<span class="nc" id="L147">            return unsupportedVersion();</span>
+        }
+<span class="nc" id="L149">        entity.setId(null);</span>
+<span class="nc" id="L150">        entity.getRule().setResource(entity.getResource().trim());</span>
+<span class="nc" id="L151">        Date date = new Date();</span>
+<span class="nc" id="L152">        entity.setGmtCreate(date);</span>
+<span class="nc" id="L153">        entity.setGmtModified(date);</span>
+        try {
+<span class="nc" id="L155">            entity = repository.save(entity);</span>
+<span class="nc" id="L156">            publishRules(entity.getApp());</span>
+<span class="nc" id="L157">            return Result.ofSuccess(entity);</span>
+<span class="nc" id="L158">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L159">            logger.error(&quot;Error when adding new parameter flow rules&quot;, ex.getCause());</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            if (isNotSupported(ex.getCause())) {</span>
+<span class="nc" id="L161">                return unsupportedVersion();</span>
+            } else {
+<span class="nc" id="L163">                return Result.ofThrowable(-1, ex.getCause());</span>
+            }
+<span class="nc" id="L165">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L166">            logger.error(&quot;Error when adding new parameter flow rules&quot;, throwable);</span>
+<span class="nc" id="L167">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    private &lt;R&gt; Result&lt;R&gt; checkEntityInternal(ParamFlowRuleEntity entity) {
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (entity == null) {</span>
+<span class="nc" id="L173">            return Result.ofFail(-1, &quot;bad rule body&quot;);</span>
+        }
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        if (StringUtil.isBlank(entity.getApp())) {</span>
+<span class="nc" id="L176">            return Result.ofFail(-1, &quot;app can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (StringUtil.isBlank(entity.getIp())) {</span>
+<span class="nc" id="L179">            return Result.ofFail(-1, &quot;ip can't be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L181" title="All 4 branches missed.">        if (entity.getPort() == null || entity.getPort() &lt;= 0) {</span>
+<span class="nc" id="L182">            return Result.ofFail(-1, &quot;port can't be null&quot;);</span>
+        }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        if (entity.getRule() == null) {</span>
+<span class="nc" id="L185">            return Result.ofFail(-1, &quot;rule can't be null&quot;);</span>
+        }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        if (StringUtil.isBlank(entity.getResource())) {</span>
+<span class="nc" id="L188">            return Result.ofFail(-1, &quot;resource name cannot be null or empty&quot;);</span>
+        }
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (entity.getCount() &lt; 0) {</span>
+<span class="nc" id="L191">            return Result.ofFail(-1, &quot;count should be valid&quot;);</span>
+        }
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (entity.getGrade() != RuleConstant.FLOW_GRADE_QPS) {</span>
+<span class="nc" id="L194">            return Result.ofFail(-1, &quot;Unknown mode (blockGrade) for parameter flow control&quot;);</span>
+        }
+<span class="nc bnc" id="L196" title="All 4 branches missed.">        if (entity.getParamIdx() == null || entity.getParamIdx() &lt; 0) {</span>
+<span class="nc" id="L197">            return Result.ofFail(-1, &quot;paramIdx should be valid&quot;);</span>
+        }
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (entity.getDurationInSec() &lt;= 0) {</span>
+<span class="nc" id="L200">            return Result.ofFail(-1, &quot;durationInSec should be valid&quot;);</span>
+        }
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if (entity.getControlBehavior() &lt; 0) {</span>
+<span class="nc" id="L203">            return Result.ofFail(-1, &quot;controlBehavior should be valid&quot;);</span>
+        }
+<span class="nc" id="L205">        return null;</span>
+    }
+
+    @PutMapping(&quot;/rule/{id}&quot;)
+    public Result&lt;ParamFlowRuleEntity&gt; apiUpdateParamFlowRule(HttpServletRequest request,
+                                                              @PathVariable(&quot;id&quot;) Long id,
+                                                              @RequestBody ParamFlowRuleEntity entity) {
+<span class="nc" id="L212">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc bnc" id="L213" title="All 4 branches missed.">        if (id == null || id &lt;= 0) {</span>
+<span class="nc" id="L214">            return Result.ofFail(-1, &quot;Invalid id&quot;);</span>
+        }
+<span class="nc" id="L216">        ParamFlowRuleEntity oldEntity = repository.findById(id);</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        if (oldEntity == null) {</span>
+<span class="nc" id="L218">            return Result.ofFail(-1, &quot;id &quot; + id + &quot; does not exist&quot;);</span>
+        }
+<span class="nc" id="L220">        authUser.authTarget(oldEntity.getApp(), PrivilegeType.WRITE_RULE);</span>
+<span class="nc" id="L221">        Result&lt;ParamFlowRuleEntity&gt; checkResult = checkEntityInternal(entity);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (checkResult != null) {</span>
+<span class="nc" id="L223">            return checkResult;</span>
+        }
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        if (!checkIfSupported(entity.getApp(), entity.getIp(), entity.getPort())) {</span>
+<span class="nc" id="L226">            return unsupportedVersion();</span>
+        }
+<span class="nc" id="L228">        entity.setId(id);</span>
+<span class="nc" id="L229">        Date date = new Date();</span>
+<span class="nc" id="L230">        entity.setGmtCreate(oldEntity.getGmtCreate());</span>
+<span class="nc" id="L231">        entity.setGmtModified(date);</span>
+        try {
+<span class="nc" id="L233">            entity = repository.save(entity);</span>
+<span class="nc" id="L234">            publishRules(entity.getApp());</span>
+<span class="nc" id="L235">            return Result.ofSuccess(entity);</span>
+<span class="nc" id="L236">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L237">            logger.error(&quot;Error when updating parameter flow rules, id=&quot; + id, ex.getCause());</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">            if (isNotSupported(ex.getCause())) {</span>
+<span class="nc" id="L239">                return unsupportedVersion();</span>
+            } else {
+<span class="nc" id="L241">                return Result.ofThrowable(-1, ex.getCause());</span>
+            }
+<span class="nc" id="L243">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L244">            logger.error(&quot;Error when updating parameter flow rules, id=&quot; + id, throwable);</span>
+<span class="nc" id="L245">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    @DeleteMapping(&quot;/rule/{id}&quot;)
+    public Result&lt;Long&gt; apiDeleteRule(HttpServletRequest request, @PathVariable(&quot;id&quot;) Long id) {
+<span class="nc" id="L251">        AuthUser authUser = authService.getAuthUser(request);</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L253">            return Result.ofFail(-1, &quot;id cannot be null&quot;);</span>
+        }
+<span class="nc" id="L255">        ParamFlowRuleEntity oldEntity = repository.findById(id);</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        if (oldEntity == null) {</span>
+<span class="nc" id="L257">            return Result.ofSuccess(null);</span>
+        }
+<span class="nc" id="L259">        authUser.authTarget(oldEntity.getApp(), PrivilegeType.DELETE_RULE);</span>
+        try {
+<span class="nc" id="L261">            repository.delete(id);</span>
+<span class="nc" id="L262">            publishRules(oldEntity.getApp());</span>
+<span class="nc" id="L263">            return Result.ofSuccess(id);</span>
+<span class="nc" id="L264">        } catch (ExecutionException ex) {</span>
+<span class="nc" id="L265">            logger.error(&quot;Error when deleting parameter flow rules&quot;, ex.getCause());</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">            if (isNotSupported(ex.getCause())) {</span>
+<span class="nc" id="L267">                return unsupportedVersion();</span>
+            } else {
+<span class="nc" id="L269">                return Result.ofThrowable(-1, ex.getCause());</span>
+            }
+<span class="nc" id="L271">        } catch (Throwable throwable) {</span>
+<span class="nc" id="L272">            logger.error(&quot;Error when deleting parameter flow rules&quot;, throwable);</span>
+<span class="nc" id="L273">            return Result.ofFail(-1, throwable.getMessage());</span>
+        }
+    }
+
+    private void publishRules(String app) throws Exception {
+<span class="nc" id="L278">        List&lt;ParamFlowRuleEntity&gt; rules = repository.findAllByApp(app);</span>
+<span class="nc" id="L279">        rulePublisher.publish(app, rules);</span>
+<span class="nc" id="L280">    }</span>
+
+    private &lt;R&gt; Result&lt;R&gt; unsupportedVersion() {
+<span class="nc" id="L283">        return Result.ofFail(4041,</span>
+            &quot;Sentinel client not supported for parameter flow control (unsupported version or dependency absent)&quot;);
+    }
+
+<span class="nc" id="L287">    private final SentinelVersion version020 = new SentinelVersion().setMinorVersion(2);</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

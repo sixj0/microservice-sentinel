@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusterConfigService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.service</a> &gt; <span class="el_source">ClusterConfigService.java</span></div><h1>ClusterConfigService.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
+import com.alibaba.csp.sentinel.dashboard.client.SentinelApiClient;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppInfo;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.request.ClusterServerModifyRequest;
+import com.alibaba.csp.sentinel.dashboard.util.AsyncUtils;
+import com.alibaba.csp.sentinel.dashboard.util.ClusterEntityUtils;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterGroupEntity;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.request.ClusterClientModifyRequest;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterClientStateVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStatePairVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStateVO;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ClusterClientConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerFlowConfig;
+import com.alibaba.csp.sentinel.dashboard.domain.cluster.config.ServerTransportConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@Service
+<span class="nc" id="L49">public class ClusterConfigService {</span>
+
+    @Autowired
+    private SentinelApiClient sentinelApiClient;
+    @Autowired
+    private AppManagement appManagement;
+
+    public CompletableFuture&lt;Void&gt; modifyClusterClientConfig(ClusterClientModifyRequest request) {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (notClientRequestValid(request)) {</span>
+<span class="nc" id="L58">            throw new IllegalArgumentException(&quot;Invalid request&quot;);</span>
+        }
+<span class="nc" id="L60">        String app = request.getApp();</span>
+<span class="nc" id="L61">        String ip = request.getIp();</span>
+<span class="nc" id="L62">        int port = request.getPort();</span>
+<span class="nc" id="L63">        return sentinelApiClient.modifyClusterClientConfig(app, ip, port, request.getClientConfig())</span>
+<span class="nc" id="L64">            .thenCompose(v -&gt; sentinelApiClient.modifyClusterMode(ip, port, ClusterStateManager.CLUSTER_CLIENT));</span>
+    }
+
+    private boolean notClientRequestValid(/*@NonNull */ ClusterClientModifyRequest request) {
+<span class="nc" id="L68">        ClusterClientConfig config = request.getClientConfig();</span>
+<span class="nc bnc" id="L69" title="All 4 branches missed.">        return config == null || StringUtil.isEmpty(config.getServerHost())</span>
+<span class="nc bnc" id="L70" title="All 4 branches missed.">            || config.getServerPort() == null || config.getServerPort() &lt;= 0</span>
+<span class="nc bnc" id="L71" title="All 4 branches missed.">            || config.getRequestTimeout() == null || config.getRequestTimeout() &lt;= 0;</span>
+    }
+
+    public CompletableFuture&lt;Void&gt; modifyClusterServerConfig(ClusterServerModifyRequest request) {
+<span class="nc" id="L75">        ServerTransportConfig transportConfig = request.getTransportConfig();</span>
+<span class="nc" id="L76">        ServerFlowConfig flowConfig = request.getFlowConfig();</span>
+<span class="nc" id="L77">        Set&lt;String&gt; namespaceSet = request.getNamespaceSet();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (invalidTransportConfig(transportConfig)) {</span>
+<span class="nc" id="L79">            throw new IllegalArgumentException(&quot;Invalid transport config in request&quot;);</span>
+        }
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (invalidFlowConfig(flowConfig)) {</span>
+<span class="nc" id="L82">            throw new IllegalArgumentException(&quot;Invalid flow config in request&quot;);</span>
+        }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (namespaceSet == null) {</span>
+<span class="nc" id="L85">            throw new IllegalArgumentException(&quot;namespace set cannot be null&quot;);</span>
+        }
+<span class="nc" id="L87">        String app = request.getApp();</span>
+<span class="nc" id="L88">        String ip = request.getIp();</span>
+<span class="nc" id="L89">        int port = request.getPort();</span>
+<span class="nc" id="L90">        return sentinelApiClient.modifyClusterServerNamespaceSet(app, ip, port, namespaceSet)</span>
+<span class="nc" id="L91">            .thenCompose(v -&gt; sentinelApiClient.modifyClusterServerTransportConfig(app, ip, port, transportConfig))</span>
+<span class="nc" id="L92">            .thenCompose(v -&gt; sentinelApiClient.modifyClusterServerFlowConfig(app, ip, port, flowConfig))</span>
+<span class="nc" id="L93">            .thenCompose(v -&gt; sentinelApiClient.modifyClusterMode(ip, port, ClusterStateManager.CLUSTER_SERVER));</span>
+    }
+
+    /**
+     * Get cluster state list of all available machines of provided application.
+     *
+     * @param app application name
+     * @return cluster state list of all available machines of the application
+     * @since 1.4.1
+     */
+    public CompletableFuture&lt;List&lt;ClusterUniversalStatePairVO&gt;&gt; getClusterUniversalState(String app) {
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (StringUtil.isBlank(app)) {</span>
+<span class="nc" id="L105">            return AsyncUtils.newFailedFuture(new IllegalArgumentException(&quot;app cannot be empty&quot;));</span>
+        }
+<span class="nc" id="L107">        AppInfo appInfo = appManagement.getDetailApp(app);</span>
+<span class="nc bnc" id="L108" title="All 4 branches missed.">        if (appInfo == null || appInfo.getMachines() == null) {</span>
+<span class="nc" id="L109">            return CompletableFuture.completedFuture(new ArrayList&lt;&gt;());</span>
+        }
+
+<span class="nc" id="L112">        List&lt;CompletableFuture&lt;ClusterUniversalStatePairVO&gt;&gt; futures = appInfo.getMachines().stream()</span>
+<span class="nc" id="L113">            .filter(e -&gt; e.isHealthy())</span>
+<span class="nc" id="L114">            .map(machine -&gt; getClusterUniversalState(app, machine.getIp(), machine.getPort())</span>
+<span class="nc" id="L115">                .thenApply(e -&gt; new ClusterUniversalStatePairVO(machine.getIp(), machine.getPort(), e)))</span>
+<span class="nc" id="L116">            .collect(Collectors.toList());</span>
+
+<span class="nc" id="L118">        return AsyncUtils.sequenceSuccessFuture(futures);</span>
+    }
+
+    public CompletableFuture&lt;ClusterGroupEntity&gt; getClusterUniversalStateForAppMachine(String app, String machineId) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (StringUtil.isBlank(app)) {</span>
+<span class="nc" id="L123">            return AsyncUtils.newFailedFuture(new IllegalArgumentException(&quot;app cannot be empty&quot;));</span>
+        }
+<span class="nc" id="L125">        AppInfo appInfo = appManagement.getDetailApp(app);</span>
+<span class="nc bnc" id="L126" title="All 4 branches missed.">        if (appInfo == null || appInfo.getMachines() == null) {</span>
+<span class="nc" id="L127">            return AsyncUtils.newFailedFuture(new IllegalArgumentException(&quot;app does not have machines&quot;));</span>
+        }
+
+<span class="nc" id="L130">        boolean machineOk = appInfo.getMachines().stream()</span>
+<span class="nc" id="L131">            .filter(e -&gt; e.isHealthy())</span>
+<span class="nc" id="L132">            .map(e -&gt; e.getIp() + '@' + e.getPort())</span>
+<span class="nc" id="L133">            .anyMatch(e -&gt; e.equals(machineId));</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (!machineOk) {</span>
+<span class="nc" id="L135">            return AsyncUtils.newFailedFuture(new IllegalStateException(&quot;machine does not exist or disconnected&quot;));</span>
+        }
+
+<span class="nc" id="L138">        return getClusterUniversalState(app)</span>
+<span class="nc" id="L139">            .thenApply(ClusterEntityUtils::wrapToClusterGroup)</span>
+<span class="nc" id="L140">            .thenCompose(e -&gt; e.stream()</span>
+<span class="nc" id="L141">                .filter(e1 -&gt; e1.getMachineId().equals(machineId))</span>
+<span class="nc" id="L142">                .findAny()</span>
+<span class="nc" id="L143">                .map(CompletableFuture::completedFuture)</span>
+<span class="nc" id="L144">                .orElse(AsyncUtils.newFailedFuture(new IllegalStateException(&quot;not a server: &quot; + machineId)))</span>
+            );
+    }
+
+    public CompletableFuture&lt;ClusterUniversalStateVO&gt; getClusterUniversalState(String app, String ip, int port) {
+<span class="nc" id="L149">        return sentinelApiClient.fetchClusterMode(ip, port)</span>
+<span class="nc" id="L150">            .thenApply(e -&gt; new ClusterUniversalStateVO().setStateInfo(e))</span>
+<span class="nc" id="L151">            .thenCompose(vo -&gt; {</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                if (vo.getStateInfo().getClientAvailable()) {</span>
+<span class="nc" id="L153">                    return sentinelApiClient.fetchClusterClientInfoAndConfig(ip, port)</span>
+<span class="nc" id="L154">                        .thenApply(cc -&gt; vo.setClient(new ClusterClientStateVO().setClientConfig(cc)));</span>
+                } else {
+<span class="nc" id="L156">                    return CompletableFuture.completedFuture(vo);</span>
+                }
+<span class="nc" id="L158">            }).thenCompose(vo -&gt; {</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">                if (vo.getStateInfo().getServerAvailable()) {</span>
+<span class="nc" id="L160">                    return sentinelApiClient.fetchClusterServerBasicInfo(ip, port)</span>
+<span class="nc" id="L161">                        .thenApply(vo::setServer);</span>
+                } else {
+<span class="nc" id="L163">                    return CompletableFuture.completedFuture(vo);</span>
+                }
+            });
+    }
+
+    private boolean invalidTransportConfig(ServerTransportConfig transportConfig) {
+<span class="nc bnc" id="L169" title="All 6 branches missed.">        return transportConfig == null || transportConfig.getPort() == null || transportConfig.getPort() &lt;= 0</span>
+<span class="nc bnc" id="L170" title="All 4 branches missed.">            || transportConfig.getIdleSeconds() == null || transportConfig.getIdleSeconds() &lt;= 0;</span>
+    }
+
+    private boolean invalidFlowConfig(ServerFlowConfig flowConfig) {
+<span class="nc bnc" id="L174" title="All 6 branches missed.">        return flowConfig == null || flowConfig.getSampleCount() == null || flowConfig.getSampleCount() &lt;= 0</span>
+<span class="nc bnc" id="L175" title="All 4 branches missed.">            || flowConfig.getIntervalMs() == null || flowConfig.getIntervalMs() &lt;= 0</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">            || flowConfig.getIntervalMs() % flowConfig.getSampleCount() != 0</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">            || flowConfig.getMaxAllowedQps() == null || flowConfig.getMaxAllowedQps() &lt; 0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

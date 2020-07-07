@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NacosConfigUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.rule.nacos</a> &gt; <span class="el_source">NacosConfigUtil.java</span></div><h1>NacosConfigUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.rule.nacos;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.RuleEntity;
+import com.alibaba.csp.sentinel.dashboard.util.JSONUtils;
+import com.alibaba.csp.sentinel.slots.block.Rule;
+import com.alibaba.csp.sentinel.util.AssertUtil;
+import com.alibaba.csp.sentinel.util.StringUtil;
+import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.exception.NacosException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * @author Eric Zhao
+ * @author www.itmuch.com
+ * @since 1.4.0
+ */
+public final class NacosConfigUtil {
+
+    public static final String GROUP_ID = &quot;SENTINEL_GROUP&quot;;
+
+    public static final String FLOW_DATA_ID_POSTFIX = &quot;-flow-rules&quot;;
+    public static final String DEGRADE_DATA_ID_POSTFIX = &quot;-degrade-rules&quot;;
+    public static final String SYSTEM_DATA_ID_POSTFIX = &quot;-system-rules&quot;;
+    public static final String PARAM_FLOW_DATA_ID_POSTFIX = &quot;-param-flow-rules&quot;;
+    public static final String AUTHORITY_DATA_ID_POSTFIX = &quot;-authority-rules&quot;;
+    public static final String DASHBOARD_POSTFIX = &quot;-dashboard&quot;;
+    public static final String CLUSTER_MAP_DATA_ID_POSTFIX = &quot;-cluster-map&quot;;
+
+    /**
+     * cc for `cluster-client`
+     */
+    public static final String CLIENT_CONFIG_DATA_ID_POSTFIX = &quot;-cc-config&quot;;
+    /**
+     * cs for `cluster-server`
+     */
+    public static final String SERVER_TRANSPORT_CONFIG_DATA_ID_POSTFIX = &quot;-cs-transport-config&quot;;
+    public static final String SERVER_FLOW_CONFIG_DATA_ID_POSTFIX = &quot;-cs-flow-config&quot;;
+    public static final String SERVER_NAMESPACE_SET_DATA_ID_POSTFIX = &quot;-cs-namespace-set&quot;;
+
+
+    private NacosConfigUtil() {
+    }
+
+    /**
+     * 将规则序列化成JSON文本，存储到Nacos server中
+     *
+     * @param configService nacos config service
+     * @param app           应用名称
+     * @param postfix       规则后缀 eg.NacosConfigUtil.FLOW_DATA_ID_POSTFIX
+     * @param rules         规则对象
+     * @throws NacosException 异常
+     */
+    public static &lt;T&gt; void setRuleStringToNacos(ConfigService configService, String app, String postfix, List&lt;T&gt; rules) throws NacosException {
+<span class="nc" id="L72">        AssertUtil.notEmpty(app, &quot;app name cannot be empty&quot;);</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (rules == null) {</span>
+<span class="nc" id="L74">            return;</span>
+        }
+
+<span class="nc" id="L77">        List&lt;Rule&gt; ruleForApp = rules.stream()</span>
+<span class="nc" id="L78">            .map(rule -&gt; {</span>
+<span class="nc" id="L79">                RuleEntity rule1 = (RuleEntity) rule;</span>
+<span class="nc" id="L80">                System.out.println(rule1.getClass());</span>
+<span class="nc" id="L81">                Rule rule2 = rule1.toRule();</span>
+<span class="nc" id="L82">                System.out.println(rule2.getClass());</span>
+<span class="nc" id="L83">                return rule2;</span>
+            })
+<span class="nc" id="L85">            .collect(Collectors.toList());</span>
+
+        // 存储，给微服务使用
+<span class="nc" id="L88">        String dataId = genDataId(app, postfix);</span>
+<span class="nc" id="L89">        configService.publishConfig(</span>
+            dataId,
+            NacosConfigUtil.GROUP_ID,
+<span class="nc" id="L92">            JSONUtils.toJSONString(ruleForApp)</span>
+        );
+
+        // 存储，给控制台使用
+<span class="nc" id="L96">        configService.publishConfig(</span>
+            dataId + DASHBOARD_POSTFIX,
+            NacosConfigUtil.GROUP_ID,
+<span class="nc" id="L99">            JSONUtils.toJSONString(rules)</span>
+        );
+<span class="nc" id="L101">    }</span>
+
+    /**
+     * 从Nacos server中查询响应规则，并将其反序列化成对应Rule实体
+     *
+     * @param configService nacos config service
+     * @param appName       应用名称
+     * @param postfix       规则后缀 eg.NacosConfigUtil.FLOW_DATA_ID_POSTFIX
+     * @param clazz         类
+     * @param &lt;T&gt;           泛型
+     * @return 规则对象列表
+     * @throws NacosException 异常
+     */
+    public static &lt;T&gt; List&lt;T&gt; getRuleEntitiesFromNacos(ConfigService configService, String appName, String postfix, Class&lt;T&gt; clazz) throws NacosException {
+<span class="nc" id="L115">        String rules = configService.getConfig(</span>
+<span class="nc" id="L116">            genDataId(appName, postfix) + DASHBOARD_POSTFIX,</span>
+            NacosConfigUtil.GROUP_ID,
+            3000
+        );
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (StringUtil.isEmpty(rules)) {</span>
+<span class="nc" id="L121">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L123">        return JSONUtils.parseObject(clazz, rules);</span>
+    }
+
+    private static String genDataId(String appName, String postfix) {
+<span class="nc" id="L127">        return appName + postfix;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

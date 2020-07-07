@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MachineInfo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.discovery</a> &gt; <span class="el_source">MachineInfo.java</span></div><h1>MachineInfo.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.discovery;
+
+import java.util.Objects;
+
+import com.alibaba.csp.sentinel.dashboard.config.DashboardConfig;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+<span class="fc" id="L23">public class MachineInfo implements Comparable&lt;MachineInfo&gt; {</span>
+
+<span class="fc" id="L25">    private String app = &quot;&quot;;</span>
+<span class="fc" id="L26">    private String hostname = &quot;&quot;;</span>
+<span class="fc" id="L27">    private String ip = &quot;&quot;;</span>
+<span class="fc" id="L28">    private Integer port = -1;</span>
+    private long lastHeartbeat;
+    private long heartbeatVersion;
+
+    /**
+     * Indicates the version of Sentinel client (since 0.2.0).
+     */
+    private String version;
+
+    public static MachineInfo of(String app, String ip, Integer port) {
+<span class="fc" id="L38">        MachineInfo machineInfo = new MachineInfo();</span>
+<span class="fc" id="L39">        machineInfo.setApp(app);</span>
+<span class="fc" id="L40">        machineInfo.setIp(ip);</span>
+<span class="fc" id="L41">        machineInfo.setPort(port);</span>
+<span class="fc" id="L42">        return machineInfo;</span>
+    }
+
+    public String toHostPort() {
+<span class="nc" id="L46">        return ip + &quot;:&quot; + port;</span>
+    }
+
+    public Integer getPort() {
+<span class="fc" id="L50">        return port;</span>
+    }
+
+    public void setPort(Integer port) {
+<span class="fc" id="L54">        this.port = port;</span>
+<span class="fc" id="L55">    }</span>
+
+    public String getApp() {
+<span class="nc" id="L58">        return app;</span>
+    }
+
+    public void setApp(String app) {
+<span class="fc" id="L62">        this.app = app;</span>
+<span class="fc" id="L63">    }</span>
+
+    public String getHostname() {
+<span class="nc" id="L66">        return hostname;</span>
+    }
+
+    public void setHostname(String hostname) {
+<span class="fc" id="L70">        this.hostname = hostname;</span>
+<span class="fc" id="L71">    }</span>
+
+    public String getIp() {
+<span class="fc" id="L74">        return ip;</span>
+    }
+
+    public void setIp(String ip) {
+<span class="fc" id="L78">        this.ip = ip;</span>
+<span class="fc" id="L79">    }</span>
+
+    public long getHeartbeatVersion() {
+<span class="nc" id="L82">        return heartbeatVersion;</span>
+    }
+    
+    public void setHeartbeatVersion(long heartbeatVersion) {
+<span class="fc" id="L86">        this.heartbeatVersion = heartbeatVersion;</span>
+<span class="fc" id="L87">    }</span>
+
+    public String getVersion() {
+<span class="nc" id="L90">        return version;</span>
+    }
+
+    public MachineInfo setVersion(String version) {
+<span class="fc" id="L94">        this.version = version;</span>
+<span class="fc" id="L95">        return this;</span>
+    }
+    
+    public boolean isHealthy() {
+<span class="fc" id="L99">        long delta = System.currentTimeMillis() - lastHeartbeat;</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        return delta &lt; DashboardConfig.getUnhealthyMachineMillis();</span>
+    }
+    
+    /**
+     * whether dead should be removed
+     * 
+     * @return
+     */
+    public boolean isDead() {
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">        if (DashboardConfig.getAutoRemoveMachineMillis() &gt; 0) {</span>
+<span class="fc" id="L110">            long delta = System.currentTimeMillis() - lastHeartbeat;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">            return delta &gt; DashboardConfig.getAutoRemoveMachineMillis();</span>
+        }
+<span class="nc" id="L113">        return false;</span>
+    }
+    
+    public long getLastHeartbeat() {
+<span class="fc" id="L117">        return lastHeartbeat;</span>
+    }
+    
+    public void setLastHeartbeat(long lastHeartbeat) {
+<span class="fc" id="L121">        this.lastHeartbeat = lastHeartbeat;</span>
+<span class="fc" id="L122">    }</span>
+
+    @Override
+    public int compareTo(MachineInfo o) {
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L127">            return 0;</span>
+        }
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (!port.equals(o.getPort())) {</span>
+<span class="nc" id="L130">            return port.compareTo(o.getPort());</span>
+        }
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!StringUtil.equals(app, o.getApp())) {</span>
+<span class="nc" id="L133">            return app.compareToIgnoreCase(o.getApp());</span>
+        }
+<span class="nc" id="L135">        return ip.compareToIgnoreCase(o.getIp());</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L140">        return new StringBuilder(&quot;MachineInfo {&quot;)</span>
+<span class="fc" id="L141">            .append(&quot;app='&quot;).append(app).append('\'')</span>
+<span class="fc" id="L142">            .append(&quot;, hostname='&quot;).append(hostname).append('\'')</span>
+<span class="fc" id="L143">            .append(&quot;, ip='&quot;).append(ip).append('\'')</span>
+<span class="fc" id="L144">            .append(&quot;, port=&quot;).append(port)</span>
+<span class="fc" id="L145">            .append(&quot;, heartbeatVersion=&quot;).append(heartbeatVersion)</span>
+<span class="fc" id="L146">            .append(&quot;, lastHeartbeat=&quot;).append(lastHeartbeat)</span>
+<span class="fc" id="L147">            .append(&quot;, version='&quot;).append(version).append('\'')</span>
+<span class="fc" id="L148">            .append(&quot;, healthy=&quot;).append(isHealthy())</span>
+<span class="fc" id="L149">            .append('}').toString();</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">        if (this == o) { return true; }</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">        if (!(o instanceof MachineInfo)) { return false; }</span>
+<span class="fc" id="L156">        MachineInfo that = (MachineInfo)o;</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        return Objects.equals(app, that.app) &amp;&amp;</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">            Objects.equals(ip, that.ip) &amp;&amp;</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">            Objects.equals(port, that.port);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L164">        return Objects.hash(app, ip, port);</span>
+    }
+
+    /**
+     * Information for log
+     *
+     * @return
+     */
+    public String toLogString() {
+<span class="nc" id="L173">        return app + &quot;|&quot; + ip + &quot;|&quot; + port + &quot;|&quot; + version;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>

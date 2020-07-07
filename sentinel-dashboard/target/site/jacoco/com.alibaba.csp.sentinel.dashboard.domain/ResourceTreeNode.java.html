@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceTreeNode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sentinel-dashboard</a> &gt; <a href="index.source.html" class="el_package">com.alibaba.csp.sentinel.dashboard.domain</a> &gt; <span class="el_source">ResourceTreeNode.java</span></div><h1>ResourceTreeNode.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.domain;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.alibaba.csp.sentinel.command.vo.NodeVo;
+
+/**
+ * @author leyou
+ */
+<span class="nc" id="L28">public class ResourceTreeNode {</span>
+    private String id;
+    private String parentId;
+    private String resource;
+
+    private Integer threadNum;
+    private Long passQps;
+    private Long blockQps;
+    private Long totalQps;
+    private Long averageRt;
+    private Long successQps;
+    private Long exceptionQps;
+    private Long oneMinutePass;
+    private Long oneMinuteBlock;
+    private Long oneMinuteException;
+    private Long oneMinuteTotal;
+
+<span class="nc" id="L45">    private boolean visible = true;</span>
+
+<span class="nc" id="L47">    private List&lt;ResourceTreeNode&gt; children = new ArrayList&lt;&gt;();</span>
+
+    public static ResourceTreeNode fromNodeVoList(List&lt;NodeVo&gt; nodeVos) {
+<span class="nc bnc" id="L50" title="All 4 branches missed.">        if (nodeVos == null || nodeVos.isEmpty()) {</span>
+<span class="nc" id="L51">            return null;</span>
+        }
+<span class="nc" id="L53">        ResourceTreeNode root = null;</span>
+<span class="nc" id="L54">        Map&lt;String, ResourceTreeNode&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        for (NodeVo vo : nodeVos) {</span>
+<span class="nc" id="L56">            ResourceTreeNode node = fromNodeVo(vo);</span>
+<span class="nc" id="L57">            map.put(node.id, node);</span>
+            // real root
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            if (node.parentId == null) {</span>
+<span class="nc" id="L60">                root = node;</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">            } else if (map.containsKey(node.parentId)) {</span>
+<span class="nc" id="L62">                map.get(node.parentId).children.add(node);</span>
+            } else {
+                // impossible
+            }
+<span class="nc" id="L66">        }</span>
+<span class="nc" id="L67">        return root;</span>
+    }
+
+    public static ResourceTreeNode fromNodeVo(NodeVo vo) {
+<span class="nc" id="L71">        ResourceTreeNode node = new ResourceTreeNode();</span>
+<span class="nc" id="L72">        node.id = vo.getId();</span>
+<span class="nc" id="L73">        node.parentId = vo.getParentId();</span>
+<span class="nc" id="L74">        node.resource = vo.getResource();</span>
+<span class="nc" id="L75">        node.threadNum = vo.getThreadNum();</span>
+<span class="nc" id="L76">        node.passQps = vo.getPassQps();</span>
+<span class="nc" id="L77">        node.blockQps = vo.getBlockQps();</span>
+<span class="nc" id="L78">        node.totalQps = vo.getTotalQps();</span>
+<span class="nc" id="L79">        node.averageRt = vo.getAverageRt();</span>
+<span class="nc" id="L80">        node.successQps = vo.getSuccessQps();</span>
+<span class="nc" id="L81">        node.exceptionQps = vo.getExceptionQps();</span>
+<span class="nc" id="L82">        node.oneMinutePass = vo.getOneMinutePass();</span>
+<span class="nc" id="L83">        node.oneMinuteBlock = vo.getOneMinuteBlock();</span>
+<span class="nc" id="L84">        node.oneMinuteException = vo.getOneMinuteException();</span>
+<span class="nc" id="L85">        node.oneMinuteTotal = vo.getOneMinuteTotal();</span>
+<span class="nc" id="L86">        return node;</span>
+    }
+
+    public void searchIgnoreCase(String searchKey) {
+<span class="nc" id="L90">        search(this, searchKey);</span>
+<span class="nc" id="L91">    }</span>
+
+    /**
+     * This node is visible only when searchKey matches this.resource or at least
+     * one of this's children is visible
+     */
+    private boolean search(ResourceTreeNode node, String searchKey) {
+        // empty matches all
+<span class="nc bnc" id="L99" title="All 4 branches missed.">        if (searchKey == null || searchKey.isEmpty() ||</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            node.resource.toLowerCase().contains(searchKey.toLowerCase())) {</span>
+<span class="nc" id="L101">            node.visible = true;</span>
+        } else {
+<span class="nc" id="L103">            node.visible = false;</span>
+        }
+
+<span class="nc" id="L106">        boolean found = false;</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        for (ResourceTreeNode c : node.children) {</span>
+<span class="nc" id="L108">            found |= search(c, searchKey);</span>
+<span class="nc" id="L109">        }</span>
+<span class="nc" id="L110">        node.visible |= found;</span>
+<span class="nc" id="L111">        return node.visible;</span>
+    }
+
+    public String getId() {
+<span class="nc" id="L115">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="nc" id="L119">        this.id = id;</span>
+<span class="nc" id="L120">    }</span>
+
+    public String getParentId() {
+<span class="nc" id="L123">        return parentId;</span>
+    }
+
+    public void setParentId(String parentId) {
+<span class="nc" id="L127">        this.parentId = parentId;</span>
+<span class="nc" id="L128">    }</span>
+
+    public String getResource() {
+<span class="nc" id="L131">        return resource;</span>
+    }
+
+    public void setResource(String resource) {
+<span class="nc" id="L135">        this.resource = resource;</span>
+<span class="nc" id="L136">    }</span>
+
+    public Integer getThreadNum() {
+<span class="nc" id="L139">        return threadNum;</span>
+    }
+
+    public void setThreadNum(Integer threadNum) {
+<span class="nc" id="L143">        this.threadNum = threadNum;</span>
+<span class="nc" id="L144">    }</span>
+
+    public Long getPassQps() {
+<span class="nc" id="L147">        return passQps;</span>
+    }
+
+    public void setPassQps(Long passQps) {
+<span class="nc" id="L151">        this.passQps = passQps;</span>
+<span class="nc" id="L152">    }</span>
+
+    public Long getBlockQps() {
+<span class="nc" id="L155">        return blockQps;</span>
+    }
+
+    public void setBlockQps(Long blockQps) {
+<span class="nc" id="L159">        this.blockQps = blockQps;</span>
+<span class="nc" id="L160">    }</span>
+
+    public Long getTotalQps() {
+<span class="nc" id="L163">        return totalQps;</span>
+    }
+
+    public void setTotalQps(Long totalQps) {
+<span class="nc" id="L167">        this.totalQps = totalQps;</span>
+<span class="nc" id="L168">    }</span>
+
+    public Long getAverageRt() {
+<span class="nc" id="L171">        return averageRt;</span>
+    }
+
+    public void setAverageRt(Long averageRt) {
+<span class="nc" id="L175">        this.averageRt = averageRt;</span>
+<span class="nc" id="L176">    }</span>
+
+    public Long getSuccessQps() {
+<span class="nc" id="L179">        return successQps;</span>
+    }
+
+    public void setSuccessQps(Long successQps) {
+<span class="nc" id="L183">        this.successQps = successQps;</span>
+<span class="nc" id="L184">    }</span>
+
+    public Long getExceptionQps() {
+<span class="nc" id="L187">        return exceptionQps;</span>
+    }
+
+    public void setExceptionQps(Long exceptionQps) {
+<span class="nc" id="L191">        this.exceptionQps = exceptionQps;</span>
+<span class="nc" id="L192">    }</span>
+
+    public Long getOneMinutePass() {
+<span class="nc" id="L195">        return oneMinutePass;</span>
+    }
+
+    public void setOneMinutePass(Long oneMinutePass) {
+<span class="nc" id="L199">        this.oneMinutePass = oneMinutePass;</span>
+<span class="nc" id="L200">    }</span>
+
+    public Long getOneMinuteBlock() {
+<span class="nc" id="L203">        return oneMinuteBlock;</span>
+    }
+
+    public void setOneMinuteBlock(Long oneMinuteBlock) {
+<span class="nc" id="L207">        this.oneMinuteBlock = oneMinuteBlock;</span>
+<span class="nc" id="L208">    }</span>
+
+    public Long getOneMinuteException() {
+<span class="nc" id="L211">        return oneMinuteException;</span>
+    }
+
+    public void setOneMinuteException(Long oneMinuteException) {
+<span class="nc" id="L215">        this.oneMinuteException = oneMinuteException;</span>
+<span class="nc" id="L216">    }</span>
+
+    public Long getOneMinuteTotal() {
+<span class="nc" id="L219">        return oneMinuteTotal;</span>
+    }
+
+    public void setOneMinuteTotal(Long oneMinuteTotal) {
+<span class="nc" id="L223">        this.oneMinuteTotal = oneMinuteTotal;</span>
+<span class="nc" id="L224">    }</span>
+
+    public boolean isVisible() {
+<span class="nc" id="L227">        return visible;</span>
+    }
+
+    public void setVisible(boolean visible) {
+<span class="nc" id="L231">        this.visible = visible;</span>
+<span class="nc" id="L232">    }</span>
+
+    public List&lt;ResourceTreeNode&gt; getChildren() {
+<span class="nc" id="L235">        return children;</span>
+    }
+
+    public void setChildren(List&lt;ResourceTreeNode&gt; children) {
+<span class="nc" id="L239">        this.children = children;</span>
+<span class="nc" id="L240">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.3.201901230119</span></div></body></html>
