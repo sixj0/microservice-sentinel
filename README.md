@@ -94,38 +94,38 @@ spring.cloud.sentinel.transport.dashboard=localhost:8080
 
 #### 配置持久化
 
-要想达到持久化的效果，还需要在sentinel客户端中加入以下配置：
+要想达到持久化的效果，还需要在sentinel客户端中加入以下配置，但是如果每个sentient客户端都加这些配置的话，就会显的很臃肿，所以我实现了一种使用代码替换这些固定配置的方式`com.sixj.sentinel.service8101.config.SentinelNacosConfig`，加了这个配置类之后就不需要下面这些配置了：
 
 ```properties
-# sentinel配置持久化到nacos
-spring.application.name=sentinel-service8101
-nacos.server-addr=127.0.0.1:8848
-nacos.groupId=SENTINEL_GROUP
 # 限流规则
-spring.cloud.sentinel.datasource.flow.nacos.server-addr=${nacos.server-addr}
+spring.cloud.sentinel.datasource.flow.nacos.server-addr=${spring.cloud.nacos.discovery.server-addr}
 spring.cloud.sentinel.datasource.flow.nacos.dataId=${spring.application.name}-flow-rules
-spring.cloud.sentinel.datasource.flow.nacos.groupId=${nacos.groupId}
+spring.cloud.sentinel.datasource.flow.nacos.groupId=SENTINEL_GROUP
 spring.cloud.sentinel.datasource.flow.nacos.rule-type=flow
+spring.cloud.sentinel.datasource.flow.nacos.namespace=${spring.cloud.nacos.discovery.namespace}
 # 降级规则
-spring.cloud.sentinel.datasource.degrade.nacos.server-addr=${nacos.server-addr}
+spring.cloud.sentinel.datasource.degrade.nacos.server-addr=${spring.cloud.nacos.discovery.server-addr}
 spring.cloud.sentinel.datasource.degrade.nacos.dataId=${spring.application.name}-degrade-rules
-spring.cloud.sentinel.datasource.degrade.nacos.groupId=${nacos.groupId}
+spring.cloud.sentinel.datasource.degrade.nacos.groupId=SENTINEL_GROUP
 spring.cloud.sentinel.datasource.degrade.nacos.rule-type=degrade
+spring.cloud.sentinel.datasource.degrade.nacos.namespace=${spring.cloud.nacos.discovery.namespace}
 # 系统规则
-spring.cloud.sentinel.datasource.system.nacos.server-addr=${nacos.server-addr}
+spring.cloud.sentinel.datasource.system.nacos.server-addr=${spring.cloud.nacos.discovery.server-addr}
 spring.cloud.sentinel.datasource.system.nacos.dataId=${spring.application.name}-system-rules
-spring.cloud.sentinel.datasource.system.nacos.groupId=${nacos.groupId}
+spring.cloud.sentinel.datasource.system.nacos.groupId=SENTINEL_GROUP
 spring.cloud.sentinel.datasource.system.nacos.rule-type=system
+spring.cloud.sentinel.datasource.system.nacos.namespace=${spring.cloud.nacos.discovery.namespace}
 # 授权规则
-spring.cloud.sentinel.datasource.authority.nacos.server-addr=${nacos.server-addr}
+spring.cloud.sentinel.datasource.authority.nacos.server-addr=${spring.cloud.nacos.discovery.server-addr}
 spring.cloud.sentinel.datasource.authority.nacos.dataId=${spring.application.name}-authority-rules
-spring.cloud.sentinel.datasource.authority.nacos.groupId=${nacos.groupId}
+spring.cloud.sentinel.datasource.authority.nacos.groupId=SENTINEL_GROUP
 spring.cloud.sentinel.datasource.authority.nacos.rule-type=authority
+spring.cloud.sentinel.datasource.authority.nacos.namespace=${spring.cloud.nacos.discovery.namespace}
 # 热点规则
-spring.cloud.sentinel.datasource.param-flow.nacos.server-addr=${nacos.server-addr}
+spring.cloud.sentinel.datasource.param-flow.nacos.server-addr=${spring.cloud.nacos.discovery.server-addr}
 spring.cloud.sentinel.datasource.param-flow.nacos.dataId=${spring.application.name}-param-flow-rules
-spring.cloud.sentinel.datasource.param-flow.nacos.groupId=${nacos.groupId}
+spring.cloud.sentinel.datasource.param-flow.nacos.groupId=SENTINEL_GROUP
 spring.cloud.sentinel.datasource.param-flow.nacos.rule-type=param_flow
-
+spring.cloud.sentinel.datasource.param-flow.nacos.namespace=${spring.cloud.nacos.discovery.namespace}
 ```
 
