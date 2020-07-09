@@ -74,27 +74,10 @@ public final class NacosConfigUtil {
             return;
         }
 
-        List<Rule> ruleForApp = rules.stream()
-            .map(rule -> {
-                RuleEntity rule1 = (RuleEntity) rule;
-                System.out.println(rule1.getClass());
-                Rule rule2 = rule1.toRule();
-                System.out.println(rule2.getClass());
-                return rule2;
-            })
-            .collect(Collectors.toList());
-
-        // 存储，给微服务使用
         String dataId = genDataId(app, postfix);
+
         configService.publishConfig(
             dataId,
-            NacosConfigUtil.GROUP_ID,
-            JSONUtils.toJSONString(ruleForApp)
-        );
-
-        // 存储，给控制台使用
-        configService.publishConfig(
-            dataId + DASHBOARD_POSTFIX,
             NacosConfigUtil.GROUP_ID,
             JSONUtils.toJSONString(rules)
         );
@@ -113,7 +96,7 @@ public final class NacosConfigUtil {
      */
     public static <T> List<T> getRuleEntitiesFromNacos(ConfigService configService, String appName, String postfix, Class<T> clazz) throws NacosException {
         String rules = configService.getConfig(
-            genDataId(appName, postfix) + DASHBOARD_POSTFIX,
+            genDataId(appName, postfix),
             NacosConfigUtil.GROUP_ID,
             3000
         );

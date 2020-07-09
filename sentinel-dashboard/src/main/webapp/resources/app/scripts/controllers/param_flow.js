@@ -225,7 +225,7 @@ angular.module('sentinelDashboardApp').controller('ParamFlowController', ['$scop
     function saveRuleAndPush(rule, edit) {
       ParamFlowService.saveRule(rule).success(function (data) {
         if (data.success) {
-          alert("修改规则成功");
+          // alert("修改规则成功");
           getMachineRules();
           if (edit) {
             paramFlowRuleDialog.close();

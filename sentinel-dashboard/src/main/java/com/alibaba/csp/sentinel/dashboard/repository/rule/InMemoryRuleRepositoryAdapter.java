@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cn.hutool.core.lang.Snowflake;
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.RuleEntity;
 import com.alibaba.csp.sentinel.dashboard.discovery.MachineInfo;
 import com.alibaba.csp.sentinel.util.AssertUtil;
@@ -42,7 +44,7 @@ public abstract class InMemoryRuleRepositoryAdapter<T extends RuleEntity> implem
     @Override
     public T save(T entity) {
         if (entity.getId() == null) {
-            entity.setId(nextId());
+            entity.setId(snowNextId());
         }
         T processedEntity = preProcess(entity);
         if (processedEntity != null) {
@@ -120,4 +122,14 @@ public abstract class InMemoryRuleRepositoryAdapter<T extends RuleEntity> implem
      * @return next unused id
      */
     abstract protected long nextId();
+
+    /**
+     * 雪花算法生成唯一id
+     * @return
+     */
+    public long snowNextId(){
+        Snowflake snowflake = IdUtil.getSnowflake(1, 1);
+        return snowflake.nextId();
+    }
+
 }

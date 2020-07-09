@@ -17,13 +17,19 @@ package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
 
 import java.util.Date;
 
+import com.alibaba.csp.sentinel.dashboard.util.LongJsonDeserializer;
+import com.alibaba.csp.sentinel.dashboard.util.LongJsonSerializer;
 import com.alibaba.csp.sentinel.slots.system.SystemRule;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * @author leyou
  */
 public class SystemRuleEntity implements RuleEntity {
 
+    @JsonSerialize(using = LongJsonSerializer.class)
+    @JsonDeserialize(using = LongJsonDeserializer.class)
     private Long id;
 
     private String app;

@@ -41,6 +41,7 @@ public class NacosConfig {
     public Converter<List<FlowRuleEntity>, String> flowRuleEntityEncoder() {
         return JSON::toJSONString;
     }
+
     @Bean
     public ConfigService nacosConfigService() throws Exception {
         Properties properties = new Properties();

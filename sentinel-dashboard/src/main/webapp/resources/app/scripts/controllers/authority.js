@@ -125,7 +125,7 @@ angular.module('sentinelDashboardApp').controller('AuthorityRuleController', ['$
         function saveRuleAndPush(rule, edit) {
             AuthorityRuleService.saveRule(rule).success(function (data) {
                 if (data.success) {
-                    alert("修改规则成功");
+                    // alert("修改规则成功");
                     getMachineRules();
                     if (edit) {
                         authorityRuleDialog.close();
